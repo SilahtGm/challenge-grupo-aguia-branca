@@ -11,7 +11,7 @@ android {
     defaultConfig {
         applicationId = "br.com.fiap.challenge_grupo_aguia_branca"
         minSdk = 28
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
