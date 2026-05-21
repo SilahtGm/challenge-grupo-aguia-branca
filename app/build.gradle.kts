@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "br.com.fiap.challenge_grupo_aguia_branca"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "br.com.fiap.challenge_grupo_aguia_branca"
         minSdk = 28
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
