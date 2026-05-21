@@ -1,0 +1,1219 @@
+DOCUMENTAÇÃO DE USO DA API / VIEWMODEL
+
+Essa documentação explica como as telas devem usar a integração com a MockAPI.
+
+A regra principal é:
+
+TELA → ApiViewModel → Retrofit → MockAPI
+
+Ou seja, nenhuma tela precisa chamar Retrofit direto.
+As telas devem usar apenas os métodos prontos da ApiViewModel.
+
+------------------------------------------------------------
+1. ESTRUTURA GERAL DO SISTEMA
+------------------------------------------------------------
+
+O app trabalha com 3 tipos principais de registro:
+
+ORIENTACAO
+IDEIA
+PROJETO
+
+Fluxo principal:
+
+Liderança cadastra orientações estratégicas
+↓
+Operador consulta orientações e cadastra ideias
+↓
+Gestor analisa, aprova ou reprova ideias
+↓
+Ideia aprovada pode virar projeto
+↓
+Projeto recebe metas e resultados
+↓
+Liderança acompanha tudo no dashboard
+
+------------------------------------------------------------
+2. CONCEITOS IMPORTANTES
+------------------------------------------------------------
+
+ORIENTACAO:
+Representa uma direção estratégica da empresa.
+
+Exemplos:
+- Redução de custos
+- Aumento de produtividade
+- Sustentabilidade
+- Experiência do cliente
+
+IDEIA:
+Representa uma sugestão/problema cadastrado pelo operador.
+
+A ideia pode estar vinculada a uma orientação estratégica pelo campo:
+
+orientacaoId
+
+PROJETO:
+Representa uma ideia aprovada que virou iniciativa real.
+
+O projeto pode estar vinculado a:
+
+ideiaId
+orientacaoId
+gestorId
+
+META:
+Não existe como tipo separado.
+A meta fica dentro do projeto, usando campos como:
+
+investimento
+retornoFinanceiro
+reducaoCustos
+ganhoProdutividade
+prazo
+
+------------------------------------------------------------
+3. ESTADOS QUE A TELA PODE OBSERVAR
+------------------------------------------------------------
+
+Toda tela que usar a ApiViewModel pode observar esses estados:
+
+usuarioLogado
+registros
+dashboard
+erro
+
+Exemplo na tela Compose:
+
+val usuarioLogado by viewModel.usuarioLogado.collectAsState()
+val registros by viewModel.registros.collectAsState()
+val dashboard by viewModel.dashboard.collectAsState()
+val erro by viewModel.erro.collectAsState()
+
+O que cada um representa:
+
+usuarioLogado:
+Usuário autenticado no app.
+
+registros:
+Lista carregada da API.
+Pode conter orientações, ideias ou projetos, dependendo do método chamado.
+
+dashboard:
+Resumo calculado para a liderança.
+
+erro:
+Mensagem de erro para exibir na tela.
+
+------------------------------------------------------------
+4. USUÁRIOS DE TESTE
+------------------------------------------------------------
+
+Não existe cadastro de usuário no app.
+
+Os usuários são fixos na MockAPI.
+
+Operador:
+email: operador@teste.com
+senha: 123456
+perfil: OPERADOR
+id: 1
+
+Gestor:
+email: gestor@teste.com
+senha: 123456
+perfil: GESTOR
+id: 2
+
+Liderança:
+email: lider@teste.com
+senha: 123456
+perfil: LIDERANCA
+id: 3
+
+------------------------------------------------------------
+5. LOGIN
+------------------------------------------------------------
+
+Método:
+
+viewModel.login(email, senha)
+
+Uso na tela:
+
+viewModel.login(email, senha)
+
+Depois de chamar o login, observar:
+
+usuarioLogado
+erro
+
+Se usuarioLogado for diferente de null, o login deu certo.
+
+Exemplo de navegação por perfil:
+
+when (usuarioLogado?.perfil) {
+    "OPERADOR" -> navegar para tela do operador
+    "GESTOR" -> navegar para tela do gestor
+    "LIDERANCA" -> navegar para tela da liderança
+}
+
+Fluxo visual:
+
+Tela de Login
+↓
+viewModel.login(email, senha)
+↓
+MockAPI busca usuário por email e senha
+↓
+Se encontrou: usuarioLogado recebe o usuário
+↓
+Tela navega pelo perfil
+
+------------------------------------------------------------
+6. LOGOUT
+------------------------------------------------------------
+
+Método:
+
+viewModel.logout()
+
+O que faz:
+
+- limpa usuário logado
+- limpa registros
+- limpa dashboard
+- limpa erro
+
+Uso:
+
+viewModel.logout()
+
+Depois disso, a tela pode navegar de volta para o login.
+
+------------------------------------------------------------
+7. ORIENTAÇÕES ESTRATÉGICAS
+------------------------------------------------------------
+
+Orientações são usadas para direcionar as ideias dos operadores.
+
+------------------------------------------------------------
+7.1 LISTAR ORIENTAÇÕES
+------------------------------------------------------------
+
+Método:
+
+viewModel.listarOrientacoes()
+
+Uso na tela:
+
+viewModel.listarOrientacoes()
+
+Depois observar:
+
+registros
+
+Campos importantes para exibir:
+
+id
+titulo
+descricao
+categoria
+ativo
+
+Exemplo de uso visual:
+
+Tela de Orientações
+↓
+viewModel.listarOrientacoes()
+↓
+registros recebe lista de ORIENTACAO
+↓
+Tela renderiza cards de orientações
+
+------------------------------------------------------------
+7.2 CADASTRAR ORIENTAÇÃO
+------------------------------------------------------------
+
+Quem usa:
+
+Liderança
+
+Campos que a tela precisa pedir:
+
+titulo
+descricao
+categoria
+
+Campos que o app preenche automático:
+
+tipo = "ORIENTACAO"
+status = ""
+prioridade = ""
+operadorId = ""
+orientacaoId = ""
+nome = ""
+etapa = ""
+investimento = 0.0
+retornoFinanceiro = 0.0
+reducaoCustos = 0.0
+ganhoProdutividade = 0.0
+prazo = ""
+ideiaId = ""
+gestorId = ""
+ativo = true
+
+Método usado:
+
+viewModel.cadastrarRegistro(...)
+
+Exemplo:
+
+viewModel.cadastrarRegistro(
+    RegistroRequest(
+        dataCriado = dataAtual,
+        tipo = "ORIENTACAO",
+        titulo = titulo,
+        descricao = descricao,
+        categoria = categoria,
+        status = "",
+        prioridade = "",
+        operadorId = "",
+        orientacaoId = "",
+        nome = "",
+        etapa = "",
+        investimento = 0.0,
+        retornoFinanceiro = 0.0,
+        reducaoCustos = 0.0,
+        ganhoProdutividade = 0.0,
+        prazo = "",
+        ideiaId = "",
+        gestorId = "",
+        ativo = true
+    )
+)
+
+------------------------------------------------------------
+8. IDEIAS
+------------------------------------------------------------
+
+Ideias são cadastradas pelo operador.
+
+Uma ideia pode estar vinculada a uma orientação estratégica.
+
+Relação:
+
+ORIENTACAO → IDEIA
+
+Exemplo:
+
+Orientação:
+id = 1
+titulo = Redução de custos
+
+Ideia:
+orientacaoId = 1
+titulo = Checklist digital de manutenção
+
+------------------------------------------------------------
+8.1 LISTAR TODAS AS IDEIAS
+------------------------------------------------------------
+
+Quem usa:
+
+Gestor
+
+Método:
+
+viewModel.listarIdeias()
+
+Depois observar:
+
+registros
+
+Essa lista retorna registros com:
+
+tipo = "IDEIA"
+
+Campos importantes para exibir:
+
+id
+titulo
+descricao
+categoria
+status
+prioridade
+operadorId
+orientacaoId
+ativo
+
+Uso:
+
+viewModel.listarIdeias()
+
+------------------------------------------------------------
+8.2 LISTAR MINHAS IDEIAS
+------------------------------------------------------------
+
+Quem usa:
+
+Operador
+
+Método:
+
+viewModel.listarMinhasIdeias()
+
+Esse método busca todas as ideias e filtra pelo usuário logado.
+
+Regra:
+
+ideia.operadorId == usuarioLogado.id
+
+Uso:
+
+viewModel.listarMinhasIdeias()
+
+Fluxo:
+
+Operador logado
+↓
+viewModel.listarMinhasIdeias()
+↓
+Busca IDEIA na API
+↓
+Filtra pelo operadorId
+↓
+Tela mostra apenas as ideias do operador
+
+------------------------------------------------------------
+8.3 LISTAR IDEIAS POR ORIENTAÇÃO
+------------------------------------------------------------
+
+Método:
+
+viewModel.listarIdeiasPorOrientacao(orientacaoId)
+
+Uso:
+
+viewModel.listarIdeiasPorOrientacao("1")
+
+Regra:
+
+ideia.orientacaoId == orientacaoId
+
+Serve para telas que mostram ideias relacionadas a uma estratégia específica.
+
+------------------------------------------------------------
+8.4 CADASTRAR IDEIA
+------------------------------------------------------------
+
+Quem usa:
+
+Operador
+
+Campos que a tela precisa pedir:
+
+titulo
+descricao
+categoria
+orientacaoId
+
+Campos automáticos:
+
+tipo = "IDEIA"
+status = "PENDENTE"
+prioridade = "MEDIA"
+operadorId = usuarioLogado.id
+nome = ""
+etapa = ""
+investimento = 0.0
+retornoFinanceiro = 0.0
+reducaoCustos = 0.0
+ganhoProdutividade = 0.0
+prazo = ""
+ideiaId = ""
+gestorId = ""
+ativo = true
+
+Método usado:
+
+viewModel.cadastrarRegistro(...)
+
+Exemplo:
+
+viewModel.cadastrarRegistro(
+    RegistroRequest(
+        dataCriado = dataAtual,
+        tipo = "IDEIA",
+        titulo = titulo,
+        descricao = descricao,
+        categoria = categoria,
+        status = "PENDENTE",
+        prioridade = "MEDIA",
+        operadorId = usuarioLogado.id,
+        orientacaoId = orientacaoId,
+        nome = "",
+        etapa = "",
+        investimento = 0.0,
+        retornoFinanceiro = 0.0,
+        reducaoCustos = 0.0,
+        ganhoProdutividade = 0.0,
+        prazo = "",
+        ideiaId = "",
+        gestorId = "",
+        ativo = true
+    )
+)
+
+Status inicial:
+
+PENDENTE
+
+Prioridade inicial:
+
+MEDIA
+
+------------------------------------------------------------
+9. ANÁLISE DE IDEIAS PELO GESTOR
+------------------------------------------------------------
+
+O gestor pode:
+
+- colocar ideia em análise
+- aprovar ideia
+- reprovar ideia
+- alterar prioridade
+- transformar ideia aprovada em projeto
+
+------------------------------------------------------------
+9.1 COLOCAR IDEIA EM ANÁLISE
+------------------------------------------------------------
+
+Método:
+
+viewModel.colocarIdeiaEmAnalise(id)
+
+Uso:
+
+viewModel.colocarIdeiaEmAnalise(ideia.id ?: "")
+
+Resultado:
+
+status = "EM_ANALISE"
+
+------------------------------------------------------------
+9.2 APROVAR IDEIA
+------------------------------------------------------------
+
+Método:
+
+viewModel.aprovarIdeia(id)
+
+Ou com prioridade:
+
+viewModel.aprovarIdeia(id, prioridade)
+
+Uso:
+
+viewModel.aprovarIdeia(ideia.id ?: "")
+
+ou
+
+viewModel.aprovarIdeia(ideia.id ?: "", "ALTA")
+
+Resultado:
+
+status = "APROVADA"
+prioridade = prioridade informada
+
+Prioridades sugeridas:
+
+BAIXA
+MEDIA
+ALTA
+
+------------------------------------------------------------
+9.3 REPROVAR IDEIA
+------------------------------------------------------------
+
+Método:
+
+viewModel.reprovarIdeia(id)
+
+Uso:
+
+viewModel.reprovarIdeia(ideia.id ?: "")
+
+Resultado:
+
+status = "REPROVADA"
+
+------------------------------------------------------------
+9.4 ATUALIZAR PRIORIDADE DA IDEIA
+------------------------------------------------------------
+
+Método:
+
+viewModel.atualizarPrioridadeIdeia(id, prioridade)
+
+Uso:
+
+viewModel.atualizarPrioridadeIdeia(ideia.id ?: "", "ALTA")
+
+Valores sugeridos:
+
+BAIXA
+MEDIA
+ALTA
+
+------------------------------------------------------------
+9.5 MARCAR IDEIA COMO PROJETO
+------------------------------------------------------------
+
+Método:
+
+viewModel.marcarIdeiaComoProjeto(id)
+
+Uso:
+
+viewModel.marcarIdeiaComoProjeto(ideia.id ?: "")
+
+Resultado:
+
+status = "VIROU_PROJETO"
+
+Esse método pode ser chamado depois que o gestor cadastrar um projeto baseado em uma ideia aprovada.
+
+Fluxo recomendado:
+
+Gestor aprova ideia
+↓
+Gestor cadastra projeto usando ideiaId
+↓
+App chama marcarIdeiaComoProjeto(ideiaId)
+
+------------------------------------------------------------
+10. PROJETOS
+------------------------------------------------------------
+
+Projeto nasce de uma ideia aprovada.
+
+Relação:
+
+ORIENTACAO → IDEIA → PROJETO
+
+Projeto tem:
+
+ideiaId
+orientacaoId
+gestorId
+
+Projeto também carrega as metas/resultados:
+
+investimento
+retornoFinanceiro
+reducaoCustos
+ganhoProdutividade
+prazo
+
+------------------------------------------------------------
+10.1 LISTAR PROJETOS
+------------------------------------------------------------
+
+Método:
+
+viewModel.listarProjetos()
+
+Uso:
+
+viewModel.listarProjetos()
+
+Depois observar:
+
+registros
+
+Campos importantes para exibir:
+
+id
+nome
+descricao
+categoria
+status
+etapa
+investimento
+retornoFinanceiro
+reducaoCustos
+ganhoProdutividade
+prazo
+ideiaId
+orientacaoId
+gestorId
+ativo
+
+------------------------------------------------------------
+10.2 LISTAR PROJETOS POR ORIENTAÇÃO
+------------------------------------------------------------
+
+Método:
+
+viewModel.listarProjetosPorOrientacao(orientacaoId)
+
+Uso:
+
+viewModel.listarProjetosPorOrientacao("1")
+
+Regra:
+
+projeto.orientacaoId == orientacaoId
+
+------------------------------------------------------------
+10.3 CADASTRAR PROJETO
+------------------------------------------------------------
+
+Quem usa:
+
+Gestor
+
+Regra:
+
+Projeto deve nascer de uma ideia aprovada.
+
+Campos que a tela precisa pedir:
+
+nome do projeto
+descricao
+categoria
+etapa
+status
+investimento
+retornoFinanceiro
+reducaoCustos
+ganhoProdutividade
+prazo
+ideiaId
+orientacaoId
+
+Campos automáticos:
+
+tipo = "PROJETO"
+titulo = ""
+prioridade = ""
+operadorId = ""
+gestorId = usuarioLogado.id
+ativo = true
+
+Método usado:
+
+viewModel.cadastrarRegistro(...)
+
+Exemplo:
+
+viewModel.cadastrarRegistro(
+    RegistroRequest(
+        dataCriado = dataAtual,
+        tipo = "PROJETO",
+        titulo = "",
+        descricao = descricao,
+        categoria = categoria,
+        status = "PLANEJAMENTO",
+        prioridade = "",
+        operadorId = "",
+        orientacaoId = orientacaoId,
+        nome = nomeProjeto,
+        etapa = "Planejamento",
+        investimento = investimento,
+        retornoFinanceiro = retornoFinanceiro,
+        reducaoCustos = reducaoCustos,
+        ganhoProdutividade = ganhoProdutividade,
+        prazo = prazo,
+        ideiaId = ideiaId,
+        gestorId = usuarioLogado.id,
+        ativo = true
+    )
+)
+
+Depois de cadastrar o projeto, pode chamar:
+
+viewModel.marcarIdeiaComoProjeto(ideiaId)
+
+------------------------------------------------------------
+10.4 ATUALIZAR STATUS DO PROJETO
+------------------------------------------------------------
+
+Método:
+
+viewModel.atualizarStatusProjeto(id, status, etapa)
+
+Uso:
+
+viewModel.atualizarStatusProjeto(
+    id = projeto.id ?: "",
+    status = "EM_ANDAMENTO",
+    etapa = "Execução"
+)
+
+Status sugeridos:
+
+PLANEJAMENTO
+EM_ANDAMENTO
+CONCLUIDO
+CANCELADO
+
+Etapas sugeridas:
+
+Planejamento
+Execução
+Validação
+Concluído
+
+------------------------------------------------------------
+10.5 ATUALIZAR RESULTADOS DO PROJETO
+------------------------------------------------------------
+
+Método:
+
+viewModel.atualizarResultadosProjeto(
+    id,
+    retornoFinanceiro,
+    reducaoCustos,
+    ganhoProdutividade
+)
+
+Uso:
+
+viewModel.atualizarResultadosProjeto(
+    id = projeto.id ?: "",
+    retornoFinanceiro = 25000.0,
+    reducaoCustos = 12000.0,
+    ganhoProdutividade = 18.0
+)
+
+Esse método atualiza os resultados obtidos do projeto.
+
+------------------------------------------------------------
+10.6 ATUALIZAR META DO PROJETO
+------------------------------------------------------------
+
+Método:
+
+viewModel.atualizarMetaProjeto(
+    id,
+    investimento,
+    retornoFinanceiro,
+    reducaoCustos,
+    ganhoProdutividade,
+    prazo
+)
+
+Uso:
+
+viewModel.atualizarMetaProjeto(
+    id = projeto.id ?: "",
+    investimento = 8000.0,
+    retornoFinanceiro = 30000.0,
+    reducaoCustos = 15000.0,
+    ganhoProdutividade = 20.0,
+    prazo = "2026-12-31"
+)
+
+Esse método pode ser usado para editar a meta planejada do projeto.
+
+------------------------------------------------------------
+11. DASHBOARD
+------------------------------------------------------------
+
+Dashboard é usado pela liderança.
+
+Método:
+
+viewModel.carregarDashboard()
+
+Uso:
+
+viewModel.carregarDashboard()
+
+Depois observar:
+
+dashboard
+
+A ViewModel busca todos os projetos e calcula:
+
+totalProjetos
+projetosConcluidos
+investimentoTotal
+retornoFinanceiroTotal
+reducaoCustosTotal
+ganhoProdutividadeMedio
+roiGeral
+
+Fórmula do ROI:
+
+ROI = ((retornoFinanceiroTotal - investimentoTotal) / investimentoTotal) * 100
+
+Exemplo de uso na tela:
+
+val dashboard by viewModel.dashboard.collectAsState()
+
+dashboard?.let {
+    Text("Total de projetos: ${it.totalProjetos}")
+    Text("Investimento total: ${it.investimentoTotal}")
+    Text("ROI geral: ${it.roiGeral}")
+}
+
+------------------------------------------------------------
+12. ATIVAR E DESATIVAR REGISTRO
+------------------------------------------------------------
+
+Caso a tela não queira excluir de verdade, pode apenas ativar/desativar.
+
+------------------------------------------------------------
+12.1 ATIVAR
+------------------------------------------------------------
+
+Método:
+
+viewModel.ativarRegistro(id, tipo)
+
+Uso:
+
+viewModel.ativarRegistro(id = registro.id ?: "", tipo = "IDEIA")
+
+Resultado:
+
+ativo = true
+
+------------------------------------------------------------
+12.2 DESATIVAR
+------------------------------------------------------------
+
+Método:
+
+viewModel.desativarRegistro(id, tipo)
+
+Uso:
+
+viewModel.desativarRegistro(id = registro.id ?: "", tipo = "PROJETO")
+
+Resultado:
+
+ativo = false
+
+------------------------------------------------------------
+13. EXCLUIR REGISTRO
+------------------------------------------------------------
+
+Método:
+
+viewModel.deletarRegistro(id, tipo)
+
+Uso:
+
+viewModel.deletarRegistro(id = registro.id ?: "", tipo = "IDEIA")
+
+ou
+
+viewModel.deletarRegistro(id = registro.id ?: "", tipo = "PROJETO")
+
+Após excluir, a ViewModel recarrega a lista do tipo informado.
+
+------------------------------------------------------------
+14. LIMPAR ERRO
+------------------------------------------------------------
+
+Método:
+
+viewModel.limparErro()
+
+Uso:
+
+viewModel.limparErro()
+
+Quando usar:
+
+Depois que a tela mostrar uma mensagem de erro em Snackbar, Toast ou Text.
+
+------------------------------------------------------------
+15. MÉTODOS PRINCIPAIS POR TELA
+------------------------------------------------------------
+
+TELA DE LOGIN:
+
+viewModel.login(email, senha)
+
+Estados usados:
+
+usuarioLogado
+erro
+
+------------------------------------------------------------
+
+TELA DO OPERADOR:
+
+Listar orientações:
+
+viewModel.listarOrientacoes()
+
+Cadastrar ideia:
+
+viewModel.cadastrarRegistro(RegistroRequest com tipo = "IDEIA")
+
+Listar minhas ideias:
+
+viewModel.listarMinhasIdeias()
+
+Logout:
+
+viewModel.logout()
+
+------------------------------------------------------------
+
+TELA DO GESTOR:
+
+Listar ideias:
+
+viewModel.listarIdeias()
+
+Colocar ideia em análise:
+
+viewModel.colocarIdeiaEmAnalise(id)
+
+Aprovar ideia:
+
+viewModel.aprovarIdeia(id)
+
+Reprovar ideia:
+
+viewModel.reprovarIdeia(id)
+
+Atualizar prioridade:
+
+viewModel.atualizarPrioridadeIdeia(id, prioridade)
+
+Cadastrar projeto:
+
+viewModel.cadastrarRegistro(RegistroRequest com tipo = "PROJETO")
+
+Marcar ideia como projeto:
+
+viewModel.marcarIdeiaComoProjeto(ideiaId)
+
+Listar projetos:
+
+viewModel.listarProjetos()
+
+Atualizar projeto:
+
+viewModel.atualizarStatusProjeto(id, status, etapa)
+
+Atualizar resultados:
+
+viewModel.atualizarResultadosProjeto(id, retorno, reducao, produtividade)
+
+Atualizar meta:
+
+viewModel.atualizarMetaProjeto(id, investimento, retorno, reducao, produtividade, prazo)
+
+------------------------------------------------------------
+
+TELA DA LIDERANÇA:
+
+Listar orientações:
+
+viewModel.listarOrientacoes()
+
+Cadastrar orientação:
+
+viewModel.cadastrarRegistro(RegistroRequest com tipo = "ORIENTACAO")
+
+Listar projetos:
+
+viewModel.listarProjetos()
+
+Carregar dashboard:
+
+viewModel.carregarDashboard()
+
+Logout:
+
+viewModel.logout()
+
+------------------------------------------------------------
+16. RESUMO DOS MÉTODOS DISPONÍVEIS
+------------------------------------------------------------
+
+Login:
+
+login(email, senha)
+
+Listagens:
+
+listarRegistrosPorTipo(tipo)
+listarIdeias()
+listarProjetos()
+listarOrientacoes()
+listarMinhasIdeias()
+listarIdeiasPorOrientacao(orientacaoId)
+listarProjetosPorOrientacao(orientacaoId)
+
+Cadastro:
+
+cadastrarRegistro(registro)
+
+Ideias:
+
+colocarIdeiaEmAnalise(id)
+aprovarIdeia(id)
+aprovarIdeia(id, prioridade)
+reprovarIdeia(id)
+marcarIdeiaComoProjeto(id)
+atualizarPrioridadeIdeia(id, prioridade)
+
+Projetos:
+
+atualizarStatusProjeto(id, status, etapa)
+atualizarResultadosProjeto(id, retornoFinanceiro, reducaoCustos, ganhoProdutividade)
+atualizarMetaProjeto(id, investimento, retornoFinanceiro, reducaoCustos, ganhoProdutividade, prazo)
+
+Dashboard:
+
+carregarDashboard()
+
+Ativação:
+
+ativarRegistro(id, tipo)
+desativarRegistro(id, tipo)
+
+Exclusão:
+
+deletarRegistro(id, tipo)
+
+Sessão:
+
+logout()
+
+Erro:
+
+limparErro()
+
+------------------------------------------------------------
+17. DESENHO DOS FLUXOS PRINCIPAIS
+------------------------------------------------------------
+
+LOGIN:
+
+LoginScreen
+↓
+viewModel.login(email, senha)
+↓
+usuarioLogado recebe usuário
+↓
+perfil define a home
+
+------------------------------------------------------------
+
+CADASTRO DE IDEIA:
+
+OperadorScreen
+↓
+Usuário escolhe orientação
+↓
+Preenche título, descrição e categoria
+↓
+viewModel.cadastrarRegistro(tipo = "IDEIA")
+↓
+MockAPI salva ideia
+↓
+viewModel.listarMinhasIdeias()
+
+------------------------------------------------------------
+
+ANÁLISE DE IDEIA:
+
+GestorScreen
+↓
+viewModel.listarIdeias()
+↓
+Gestor escolhe ideia
+↓
+viewModel.aprovarIdeia(id)
+ou
+viewModel.reprovarIdeia(id)
+
+------------------------------------------------------------
+
+CRIAÇÃO DE PROJETO:
+
+GestorScreen
+↓
+Seleciona ideia aprovada
+↓
+Preenche dados do projeto/metas
+↓
+viewModel.cadastrarRegistro(tipo = "PROJETO")
+↓
+viewModel.marcarIdeiaComoProjeto(ideiaId)
+
+------------------------------------------------------------
+
+DASHBOARD:
+
+LiderancaScreen
+↓
+viewModel.carregarDashboard()
+↓
+ViewModel busca projetos
+↓
+DashboardService calcula indicadores
+↓
+Tela mostra cards/gráficos
+
+------------------------------------------------------------
+18. OBSERVAÇÃO IMPORTANTE
+------------------------------------------------------------
+
+As telas não devem montar chamada HTTP manualmente.
+
+Não usar Retrofit direto nas telas.
+
+Usar sempre a ApiViewModel.
+
+Certo:
+
+viewModel.listarIdeias()
+viewModel.aprovarIdeia(id)
+viewModel.carregarDashboard()
+
+Errado:
+
+RetrofitClient.apiService.listarRegistrosPorTipo("IDEIA") direto na tela
+
+------------------------------------------------------------
+19. PADRÕES DE STATUS
+------------------------------------------------------------
+
+Status de ideia:
+
+PENDENTE
+EM_ANALISE
+APROVADA
+REPROVADA
+VIROU_PROJETO
+
+Status de projeto:
+
+PLANEJAMENTO
+EM_ANDAMENTO
+CONCLUIDO
+CANCELADO
+
+Prioridade:
+
+BAIXA
+MEDIA
+ALTA
+
+Tipos de registro:
+
+ORIENTACAO
+IDEIA
+PROJETO
