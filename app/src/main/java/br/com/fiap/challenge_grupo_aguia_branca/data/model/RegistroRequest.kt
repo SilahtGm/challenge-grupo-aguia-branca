@@ -18,5 +18,6 @@ data class RegistroRequest(
     val prazo: String,
     val ideiaId: String,
     val gestorId: String,
-    val ativo: Boolean
+    val ativo: Boolean,
+    val orientacaoId: String
 )

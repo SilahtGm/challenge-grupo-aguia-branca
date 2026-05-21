@@ -19,5 +19,6 @@ data class RegistroResponse(
     val prazo: String? = null,
     val ideiaId: String? = null,
     val gestorId: String? = null,
-    val ativo: Boolean? = null
+    val ativo: Boolean? = null,
+    val orientacaoId: String? = null
 )
