@@ -13,6 +13,7 @@ import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorNavigation
 import br.com.fiap.challenge_grupo_aguia_branca.screens.LoadingScreen
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.ChallengegrupoaguiabrancaTheme
 import kotlinx.coroutines.delay
+import br.com.fiap.challenge_grupo_aguia_branca.screens.TesteApiScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
                     OperadorNavigation()
                 }
             }
+
         }
     }
 }
