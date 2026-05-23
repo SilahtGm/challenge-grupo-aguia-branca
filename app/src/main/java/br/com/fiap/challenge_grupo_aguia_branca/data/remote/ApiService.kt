@@ -21,9 +21,6 @@ interface ApiService {
         @Query("senha") senha: String
     ): List<UsuarioResponse>
 
-    @GET("usuarios")
-    suspend fun listarUsuarios(): List<UsuarioResponse>
-
     //fim endpoints usuarios
 
     //endpoints registros

@@ -14,22 +14,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.ChallengegrupoaguiabrancaTheme
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaAzulEscuro
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaBranco
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaLilas
 
 @Composable
 fun LoadingScreen() {
-    val backgrounColor = Color(0xFF29476F)
-    val loadingColor = Color(0xFFE8E2F8)
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgrounColor),
+            .background(InovaAzulEscuro),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -39,7 +38,7 @@ fun LoadingScreen() {
         ) {
             Text(
                 text = "Águia Branca Colab",
-                color = Color.White,
+                color = InovaBranco,
                 fontSize = 38.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = (-1).sp
@@ -49,7 +48,7 @@ fun LoadingScreen() {
 
             Text(
                 text = "Inovação corporativa",
-                color = Color.White,
+                color = InovaBranco,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Normal
             )
@@ -58,16 +57,16 @@ fun LoadingScreen() {
 
             CircularProgressIndicator(
                 modifier = Modifier.size(58.dp),
-                color = loadingColor,
+                color = InovaLilas,
                 strokeWidth = 5.dp,
-                trackColor = Color.Transparent
+                trackColor = InovaAzulEscuro
             )
 
             Spacer(modifier = Modifier.height(58.dp))
 
             Text(
                 text = "Grupo Águia Branca",
-                color = Color.White,
+                color = InovaBranco,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Normal
             )

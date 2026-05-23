@@ -1,0 +1,26 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: aguia-branca-backend
+
+mockapi:
+  base-url: https://6a0ba9b25aa893e1015a5df8.mockapi.io/api/v1
+
+security:
+  jwt:
+    # Chave HS256: troque em produção. Mínimo 32 bytes (256 bits).
+    secret: "TROQUE_ESTA_CHAVE_EM_PROD_AGUIA_BRANCA_FIAP_2026_!!"
+    issuer: aguia-branca-backend
+    expiration-minutes: 120
+  cors:
+    # Em desenvolvimento Android pode usar "*"; em produção restrinja.
+    allowed-origins: "*"
+
+logging:
+  level:
+    org.springframework.security: INFO
+    br.com.fiap.aguiabranca: DEBUG

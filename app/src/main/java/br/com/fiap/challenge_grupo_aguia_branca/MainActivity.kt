@@ -9,11 +9,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorNavigation
+import br.com.fiap.challenge_grupo_aguia_branca.navigation.AppNavigation
 import br.com.fiap.challenge_grupo_aguia_branca.screens.LoadingScreen
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.ChallengegrupoaguiabrancaTheme
 import kotlinx.coroutines.delay
-import br.com.fiap.challenge_grupo_aguia_branca.screens.TesteApiScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,10 +32,9 @@ class MainActivity : ComponentActivity() {
                 if (showLoading) {
                     LoadingScreen()
                 } else {
-                    OperadorNavigation()
+                    AppNavigation()
                 }
             }
-
         }
     }
 }
