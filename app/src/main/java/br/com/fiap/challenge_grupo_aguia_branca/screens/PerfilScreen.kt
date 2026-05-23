@@ -2,119 +2,117 @@ package br.com.fiap.challenge_grupo_aguia_branca.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorBottomBar
-import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorDestination
+import androidx.lifecycle.viewmodel.compose.viewModel
+import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaBottomBar
+import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaBottomItem
+import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.ChallengegrupoaguiabrancaTheme
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaAzulClaro
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaAzulEscuro
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaBranco
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaFundo
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaTexto
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaLilas
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaPreto
+import br.com.fiap.challenge_grupo_aguia_branca.viewmodel.ApiViewModel
 
 @Composable
 fun PerfilScreen(
-    onNavigate: (OperadorDestination) -> Unit = {},
+    viewModel: ApiViewModel = viewModel(),
+    items: List<InovaBottomItem>,
+    selectedKey: String,
     onVoltarClick: () -> Unit = {}
 ) {
-    val backgroundColor = Color(0xFFF5F6F8)
-    val topBarColor = Color(0xFF29476F)
+    val usuario by viewModel.usuarioLogado.collectAsState()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundColor)
+            .background(InovaCinzaFundo)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(58.dp)
-                    .background(topBarColor)
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "←",
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.clickable { onVoltarClick() }
-                )
-
-                Spacer(modifier = Modifier.width(18.dp))
-
-                Text(
-                    text = "Meu Perfil",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-            }
+            InovaTopBar(
+                titulo = "Meu Perfil",
+                mostrarVoltar = true,
+                onVoltarClick = onVoltarClick
+            )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 11.dp)
-                    .padding(top = 14.dp, bottom = 74.dp)
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 18.dp, bottom = 80.dp)
             ) {
-                PerfilCardOperador()
+                PerfilCardInfo(
+                    nome = usuario?.nome ?: "—",
+                    email = usuario?.email ?: "—",
+                    perfil = usuario?.perfil?.capitalizar() ?: "—"
+                )
             }
         }
 
-        OperadorBottomBar(
-            currentScreen = OperadorDestination.PERFIL,
-            onNavigate = onNavigate,
+        InovaBottomBar(
+            items = items,
+            selectedKey = selectedKey,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
 }
 
+private fun String.capitalizar(): String {
+    return lowercase().replaceFirstChar { it.uppercase() }
+}
+
 @Composable
-fun PerfilCardOperador() {
+fun PerfilCardInfo(
+    nome: String,
+    email: String,
+    perfil: String
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp)
+            .height(210.dp)
     ) {
         Card(
             modifier = Modifier
                 .fillMaxSize()
                 .shadow(
                     elevation = 2.dp,
-                    shape = RoundedCornerShape(8.dp),
-                    ambientColor = Color.Black.copy(alpha = 0.08f),
-                    spotColor = Color.Black.copy(alpha = 0.08f)
+                    shape = RoundedCornerShape(10.dp),
+                    ambientColor = InovaPreto.copy(alpha = 0.08f),
+                    spotColor = InovaPreto.copy(alpha = 0.08f)
                 ),
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(10.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color.White
+                containerColor = InovaBranco
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
@@ -126,24 +124,24 @@ fun PerfilCardOperador() {
                         .fillMaxWidth()
                         .height(4.dp)
                         .background(
-                            color = Color(0xFF29476F),
-                            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                            color = InovaAzulEscuro,
+                            shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
                         )
                 )
 
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 23.dp),
+                        .padding(top = 25.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    AvatarOperador()
+                    AvatarUsuario()
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "João Silva",
-                        color = Color(0xFF111827),
+                        text = nome,
+                        color = InovaAzulEscuro,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold
                     )
@@ -151,27 +149,27 @@ fun PerfilCardOperador() {
                     Spacer(modifier = Modifier.height(3.dp))
 
                     Text(
-                        text = "joao.silva@aguiabranca.com",
-                        color = Color(0xFF6B7280),
+                        text = email,
+                        color = InovaCinzaTexto,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
 
-                    Spacer(modifier = Modifier.height(9.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Box(
                         modifier = Modifier
-                            .height(22.dp)
+                            .height(24.dp)
                             .background(
-                                color = Color(0xFF29476F),
+                                color = InovaAzulClaro,
                                 shape = RoundedCornerShape(20.dp)
                             )
-                            .padding(horizontal = 15.dp),
+                            .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Operador",
-                            color = Color.White,
+                            text = perfil,
+                            color = InovaBranco,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
@@ -183,32 +181,36 @@ fun PerfilCardOperador() {
 }
 
 @Composable
-fun AvatarOperador() {
-    val avatarColor = Color(0xFF5B2A86)
-
+fun AvatarUsuario() {
     Canvas(
-        modifier = Modifier.size(58.dp)
+        modifier = Modifier.size(64.dp)
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
 
         drawCircle(
-            color = avatarColor,
-            radius = canvasWidth * 0.22f,
+            color = InovaLilas,
+            radius = canvasWidth * 0.5f,
+            center = Offset(x = canvasWidth / 2, y = canvasHeight / 2)
+        )
+
+        drawCircle(
+            color = InovaAzulEscuro,
+            radius = canvasWidth * 0.20f,
             center = Offset(
                 x = canvasWidth / 2,
-                y = canvasHeight * 0.27f
+                y = canvasHeight * 0.32f
             )
         )
 
         drawOval(
-            color = avatarColor,
+            color = InovaAzulEscuro,
             topLeft = Offset(
-                x = canvasWidth * 0.18f,
-                y = canvasHeight * 0.44f
+                x = canvasWidth * 0.20f,
+                y = canvasHeight * 0.52f
             ),
             size = Size(
-                width = canvasWidth * 0.64f,
+                width = canvasWidth * 0.60f,
                 height = canvasHeight * 0.48f
             )
         )
@@ -219,6 +221,6 @@ fun AvatarOperador() {
 @Composable
 fun PerfilScreenPreview() {
     ChallengegrupoaguiabrancaTheme {
-        PerfilScreen()
+        PerfilCardInfo("João Silva", "joao.silva@aguiabranca.com", "Operador")
     }
 }

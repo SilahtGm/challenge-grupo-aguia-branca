@@ -28,6 +28,9 @@ class ApiViewModel : ViewModel() {
     private val _erro = MutableStateFlow<String?>(null)
     val erro: StateFlow<String?> = _erro
 
+    private val _mensagem = MutableStateFlow<String?>(null)
+    val mensagem: StateFlow<String?> = _mensagem
+
     fun login(email: String, senha: String) {
         viewModelScope.launch {
             try {
@@ -60,12 +63,14 @@ class ApiViewModel : ViewModel() {
         }
     }
 
-    fun cadastrarRegistro(registro: RegistroRequest) {
+    fun cadastrarRegistro(registro: RegistroRequest, aoConcluir: () -> Unit = {}) {
         viewModelScope.launch {
             try {
                 api.cadastrarRegistro(registro)
-                listarRegistrosPorTipo(registro.tipo)
+                _mensagem.value = "Registro criado com sucesso."
                 _erro.value = null
+                listarRegistrosPorTipo(registro.tipo)
+                aoConcluir()
             } catch (e: Exception) {
                 _erro.value = "Erro ao cadastrar registro."
             }
@@ -76,8 +81,8 @@ class ApiViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 api.atualizarRegistroParcial(id, campos)
-                listarRegistrosPorTipo(tipo)
                 _erro.value = null
+                listarRegistrosPorTipo(tipo)
             } catch (e: Exception) {
                 _erro.value = "Erro ao atualizar registro."
             }
@@ -88,8 +93,9 @@ class ApiViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 api.deletarRegistro(id)
-                listarRegistrosPorTipo(tipo)
+                _mensagem.value = "Registro removido."
                 _erro.value = null
+                listarRegistrosPorTipo(tipo)
             } catch (e: Exception) {
                 _erro.value = "Erro ao deletar registro."
             }
@@ -289,9 +295,14 @@ class ApiViewModel : ViewModel() {
         _registros.value = emptyList()
         _dashboard.value = null
         _erro.value = null
+        _mensagem.value = null
     }
 
     fun limparErro() {
         _erro.value = null
+    }
+
+    fun limparMensagem() {
+        _mensagem.value = null
     }
 }

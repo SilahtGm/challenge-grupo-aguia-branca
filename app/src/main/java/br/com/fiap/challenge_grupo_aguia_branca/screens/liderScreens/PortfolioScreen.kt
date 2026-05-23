@@ -1,4 +1,4 @@
-package br.com.fiap.challenge_grupo_aguia_branca.screens.operatorScreens
+package br.com.fiap.challenge_grupo_aguia_branca.screens.liderScreens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,26 +31,29 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroResponse
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
-import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorBottomBar
-import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorDestination
+import br.com.fiap.challenge_grupo_aguia_branca.navigation.LiderBottomBar
+import br.com.fiap.challenge_grupo_aguia_branca.navigation.LiderDestination
+import br.com.fiap.challenge_grupo_aguia_branca.screens.gestorScreens.ProgressBarLinha
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.ChallengegrupoaguiabrancaTheme
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaAzulEscuro
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaBranco
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaFundo
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaTexto
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaPreto
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaVerde
 import br.com.fiap.challenge_grupo_aguia_branca.viewmodel.ApiViewModel
+import kotlin.math.roundToInt
 
 @Composable
-fun GuidelineScreen(
+fun PortfolioScreen(
     viewModel: ApiViewModel = viewModel(),
-    onNavigate: (OperadorDestination) -> Unit = {},
+    onNavigate: (LiderDestination) -> Unit = {},
     onVoltarClick: () -> Unit = {}
 ) {
-    val orientacoes by viewModel.registros.collectAsState()
+    val projetos by viewModel.registros.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.listarOrientacoes()
+        viewModel.listarProjetos()
     }
 
     Box(
@@ -63,7 +65,7 @@ fun GuidelineScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             InovaTopBar(
-                titulo = "Diretrizes",
+                titulo = "Portfólio",
                 mostrarVoltar = true,
                 onVoltarClick = onVoltarClick
             )
@@ -75,9 +77,9 @@ fun GuidelineScreen(
                     .padding(horizontal = 14.dp)
                     .padding(top = 14.dp, bottom = 80.dp)
             ) {
-                if (orientacoes.isEmpty()) {
+                if (projetos.isEmpty()) {
                     Text(
-                        text = "Nenhuma diretriz disponível.",
+                        text = "Nenhum projeto no portfólio.",
                         color = InovaCinzaTexto,
                         fontSize = 12.sp
                     )
@@ -85,16 +87,16 @@ fun GuidelineScreen(
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(orientacoes) { orientacao ->
-                            DiretrizCard(orientacao)
+                        items(projetos) { projeto ->
+                            PortfolioCard(projeto)
                         }
                     }
                 }
             }
         }
 
-        OperadorBottomBar(
-            currentScreen = OperadorDestination.DIRETRIZES,
+        LiderBottomBar(
+            currentScreen = LiderDestination.PORTFOLIO,
             onNavigate = onNavigate,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
@@ -102,7 +104,10 @@ fun GuidelineScreen(
 }
 
 @Composable
-fun DiretrizCard(orientacao: RegistroResponse) {
+fun PortfolioCard(projeto: RegistroResponse) {
+    val progresso = calcularProgresso(projeto.status, projeto.etapa)
+    val roi = projeto.retornoFinanceiroTotalLocal()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -113,75 +118,83 @@ fun DiretrizCard(orientacao: RegistroResponse) {
                 spotColor = InovaPreto.copy(alpha = 0.08f)
             ),
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = InovaBranco
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        colors = CardDefaults.cardColors(containerColor = InovaBranco)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(110.dp)
+                .padding(horizontal = 14.dp, vertical = 14.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(4.dp)
-                    .background(
-                        color = InovaAzulEscuro,
-                        shape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp)
-                    )
+            Text(
+                text = projeto.nome ?: projeto.titulo ?: "—",
+                color = InovaAzulEscuro,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.ExtraBold
             )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 14.dp, vertical = 14.dp)
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = orientacao.nome ?: orientacao.titulo ?: "—",
+                    text = "Progresso",
+                    color = InovaCinzaTexto,
+                    fontSize = 11.sp
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "$progresso%",
                     color = InovaAzulEscuro,
-                    fontSize = 14.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
+            }
 
-                Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
+            ProgressBarLinha(progresso = progresso)
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row {
                 Text(
-                    text = orientacao.descricao ?: "Sem descrição",
+                    text = "ROI: ",
                     color = InovaCinzaTexto,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
+                    fontSize = 11.sp
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Box(
-                    modifier = Modifier
-                        .height(22.dp)
-                        .background(
-                            color = InovaAzulEscuro,
-                            shape = RoundedCornerShape(20.dp)
-                        )
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "🎯 Estratégica",
-                        color = InovaBranco,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "R$ ${roi}K",
+                    color = InovaVerde,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
             }
         }
     }
 }
 
+private fun RegistroResponse.retornoFinanceiroTotalLocal(): Int {
+    val retorno = retornoFinanceiro ?: 0.0
+    return (retorno / 1000).roundToInt()
+}
+
+private fun calcularProgresso(status: String?, etapa: String?): Int {
+    return when {
+        status == "CONCLUIDO" -> 100
+        status == "EM_ANDAMENTO" && (etapa?.contains("Execu", ignoreCase = true) == true) -> 65
+        status == "EM_ANDAMENTO" -> 50
+        status == "PLANEJAMENTO" -> 20
+        else -> 10
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
-fun GuidelineScreenPreview() {
+fun PortfolioScreenPreview() {
     ChallengegrupoaguiabrancaTheme {
-        GuidelineScreen()
+        PortfolioScreen()
     }
 }

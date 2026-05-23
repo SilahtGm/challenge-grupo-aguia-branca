@@ -1,6 +1,7 @@
-package br.com.fiap.challenge_grupo_aguia_branca.screens.operatorScreens
+package br.com.fiap.challenge_grupo_aguia_branca.screens.liderScreens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,9 +33,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroResponse
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
-import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorBottomBar
-import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorDestination
+import br.com.fiap.challenge_grupo_aguia_branca.navigation.LiderBottomBar
+import br.com.fiap.challenge_grupo_aguia_branca.navigation.LiderDestination
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.ChallengegrupoaguiabrancaTheme
+import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaAzulClaro
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaAzulEscuro
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaBranco
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaFundo
@@ -43,12 +45,14 @@ import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaPreto
 import br.com.fiap.challenge_grupo_aguia_branca.viewmodel.ApiViewModel
 
 @Composable
-fun GuidelineScreen(
+fun DiretrizesLiderScreen(
     viewModel: ApiViewModel = viewModel(),
-    onNavigate: (OperadorDestination) -> Unit = {},
-    onVoltarClick: () -> Unit = {}
+    onNavigate: (LiderDestination) -> Unit = {},
+    onVoltarClick: () -> Unit = {},
+    onNovaDiretrizClick: () -> Unit = {},
+    onEditarDiretriz: (String) -> Unit = {}
 ) {
-    val orientacoes by viewModel.registros.collectAsState()
+    val diretrizes by viewModel.registros.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.listarOrientacoes()
@@ -75,9 +79,13 @@ fun GuidelineScreen(
                     .padding(horizontal = 14.dp)
                     .padding(top = 14.dp, bottom = 80.dp)
             ) {
-                if (orientacoes.isEmpty()) {
+                NovaDiretrizBotao(onClick = onNovaDiretrizClick)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (diretrizes.isEmpty()) {
                     Text(
-                        text = "Nenhuma diretriz disponível.",
+                        text = "Nenhuma diretriz cadastrada.",
                         color = InovaCinzaTexto,
                         fontSize = 12.sp
                     )
@@ -85,16 +93,22 @@ fun GuidelineScreen(
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(orientacoes) { orientacao ->
-                            DiretrizCard(orientacao)
+                        items(diretrizes) { diretriz ->
+                            DiretrizLiderCard(
+                                diretriz = diretriz,
+                                onEditar = { diretriz.id?.let(onEditarDiretriz) },
+                                onExcluir = {
+                                    diretriz.id?.let { viewModel.deletarRegistro(it, "ORIENTACAO") }
+                                }
+                            )
                         }
                     }
                 }
             }
         }
 
-        OperadorBottomBar(
-            currentScreen = OperadorDestination.DIRETRIZES,
+        LiderBottomBar(
+            currentScreen = LiderDestination.DIRETRIZES,
             onNavigate = onNavigate,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
@@ -102,7 +116,43 @@ fun GuidelineScreen(
 }
 
 @Composable
-fun DiretrizCard(orientacao: RegistroResponse) {
+fun NovaDiretrizBotao(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .shadow(
+                elevation = 3.dp,
+                shape = RoundedCornerShape(10.dp),
+                ambientColor = InovaPreto.copy(alpha = 0.10f),
+                spotColor = InovaPreto.copy(alpha = 0.10f)
+            )
+            .background(
+                color = InovaAzulClaro,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = "+", color = InovaBranco, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Nova Diretriz",
+                color = InovaBranco,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+    }
+}
+
+@Composable
+fun DiretrizLiderCard(
+    diretriz: RegistroResponse,
+    onEditar: () -> Unit,
+    onExcluir: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -113,15 +163,12 @@ fun DiretrizCard(orientacao: RegistroResponse) {
                 spotColor = InovaPreto.copy(alpha = 0.08f)
             ),
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = InovaBranco
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        colors = CardDefaults.cardColors(containerColor = InovaBranco)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(110.dp)
+                .height(130.dp)
         ) {
             Box(
                 modifier = Modifier
@@ -139,7 +186,7 @@ fun DiretrizCard(orientacao: RegistroResponse) {
                     .padding(horizontal = 14.dp, vertical = 14.dp)
             ) {
                 Text(
-                    text = orientacao.nome ?: orientacao.titulo ?: "—",
+                    text = diretriz.nome ?: diretriz.titulo ?: "—",
                     color = InovaAzulEscuro,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold
@@ -148,29 +195,27 @@ fun DiretrizCard(orientacao: RegistroResponse) {
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = orientacao.descricao ?: "Sem descrição",
+                    text = diretriz.descricao ?: "Sem descrição",
                     color = InovaCinzaTexto,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.weight(1f))
 
-                Box(
-                    modifier = Modifier
-                        .height(22.dp)
-                        .background(
-                            color = InovaAzulEscuro,
-                            shape = RoundedCornerShape(20.dp)
-                        )
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "🎯 Estratégica",
-                        color = InovaBranco,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                Row {
+                    BotaoMini(
+                        label = "✎ Editar",
+                        background = InovaAzulEscuro,
+                        onClick = onEditar
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    BotaoMini(
+                        label = "🗑",
+                        background = InovaAzulClaro,
+                        onClick = onExcluir
                     )
                 }
             }
@@ -178,10 +223,36 @@ fun DiretrizCard(orientacao: RegistroResponse) {
     }
 }
 
+@Composable
+fun BotaoMini(
+    label: String,
+    background: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .height(30.dp)
+            .background(
+                color = background,
+                shape = RoundedCornerShape(6.dp)
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            color = InovaBranco,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
-fun GuidelineScreenPreview() {
+fun DiretrizesLiderScreenPreview() {
     ChallengegrupoaguiabrancaTheme {
-        GuidelineScreen()
+        DiretrizesLiderScreen()
     }
 }

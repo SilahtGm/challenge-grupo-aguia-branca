@@ -1,36 +1,32 @@
 package br.com.fiap.challenge_grupo_aguia_branca.navigation
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import br.com.fiap.challenge_grupo_aguia_branca.screens.LoginScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
 import br.com.fiap.challenge_grupo_aguia_branca.screens.PerfilScreen
 import br.com.fiap.challenge_grupo_aguia_branca.screens.operatorScreens.GuidelineScreen
 import br.com.fiap.challenge_grupo_aguia_branca.screens.operatorScreens.HomeOperadorScreen
 import br.com.fiap.challenge_grupo_aguia_branca.screens.operatorScreens.IdeaRegisterScreen
 import br.com.fiap.challenge_grupo_aguia_branca.screens.operatorScreens.IdeasScreen
+import br.com.fiap.challenge_grupo_aguia_branca.viewmodel.ApiViewModel
 
 enum class OperadorDestination {
     HOME,
     IDEIAS,
     DIRETRIZES,
     PERFIL,
-    IDEA_REGISTER,
-    LOGIN
+    IDEA_REGISTER
 }
 
 @Composable
-fun OperadorNavigation() {
+fun OperadorNavigation(
+    viewModel: ApiViewModel = viewModel(),
+    onLogout: () -> Unit = {}
+) {
     var currentScreen by rememberSaveable {
         mutableStateOf(OperadorDestination.HOME)
     }
@@ -42,15 +38,18 @@ fun OperadorNavigation() {
     when (currentScreen) {
         OperadorDestination.HOME -> {
             HomeOperadorScreen(
+                viewModel = viewModel,
                 onNavigate = onNavigate,
                 onLogout = {
-                    currentScreen = OperadorDestination.LOGIN
+                    viewModel.logout()
+                    onLogout()
                 }
             )
         }
 
         OperadorDestination.IDEIAS -> {
             IdeasScreen(
+                viewModel = viewModel,
                 onNavigate = onNavigate,
                 onVoltarClick = {
                     currentScreen = OperadorDestination.HOME
@@ -60,6 +59,7 @@ fun OperadorNavigation() {
 
         OperadorDestination.DIRETRIZES -> {
             GuidelineScreen(
+                viewModel = viewModel,
                 onNavigate = onNavigate,
                 onVoltarClick = {
                     currentScreen = OperadorDestination.HOME
@@ -69,7 +69,9 @@ fun OperadorNavigation() {
 
         OperadorDestination.PERFIL -> {
             PerfilScreen(
-                onNavigate = onNavigate,
+                viewModel = viewModel,
+                items = operadorBottomItems(onNavigate),
+                selectedKey = "perfil",
                 onVoltarClick = {
                     currentScreen = OperadorDestination.HOME
                 }
@@ -78,6 +80,7 @@ fun OperadorNavigation() {
 
         OperadorDestination.IDEA_REGISTER -> {
             IdeaRegisterScreen(
+                viewModel = viewModel,
                 onVoltarClick = {
                     currentScreen = OperadorDestination.HOME
                 },
@@ -89,11 +92,37 @@ fun OperadorNavigation() {
                 }
             )
         }
-
-        OperadorDestination.LOGIN -> {
-            LoginScreen()
-        }
     }
+}
+
+@Composable
+fun operadorBottomItems(onNavigate: (OperadorDestination) -> Unit): List<InovaBottomItem> {
+    return listOf(
+        InovaBottomItem(
+            key = "home",
+            icon = "🏠",
+            label = "Home",
+            onClick = { onNavigate(OperadorDestination.HOME) }
+        ),
+        InovaBottomItem(
+            key = "ideias",
+            icon = "💡",
+            label = "Ideias",
+            onClick = { onNavigate(OperadorDestination.IDEIAS) }
+        ),
+        InovaBottomItem(
+            key = "diretrizes",
+            icon = "📋",
+            label = "Diretrizes",
+            onClick = { onNavigate(OperadorDestination.DIRETRIZES) }
+        ),
+        InovaBottomItem(
+            key = "perfil",
+            icon = "👤",
+            label = "Perfil",
+            onClick = { onNavigate(OperadorDestination.PERFIL) }
+        )
+    )
 }
 
 @Composable
@@ -102,109 +131,16 @@ fun OperadorBottomBar(
     onNavigate: (OperadorDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val selectedColor = Color(0xFF29476F)
-    val inactiveColor = Color(0xFF7B8494)
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            .background(Color.White)
-            .border(
-                width = 1.dp,
-                color = Color(0xFFE5E7EB)
-            ),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        OperadorBottomItem(
-            icon = "🏠",
-            label = "Home",
-            selected = currentScreen == OperadorDestination.HOME,
-            selectedColor = selectedColor,
-            inactiveColor = inactiveColor,
-            modifier = Modifier.weight(1f),
-            onClick = { onNavigate(OperadorDestination.HOME) }
-        )
-
-        OperadorBottomItem(
-            icon = "💡",
-            label = "Ideias",
-            selected = currentScreen == OperadorDestination.IDEIAS,
-            selectedColor = selectedColor,
-            inactiveColor = inactiveColor,
-            modifier = Modifier.weight(1f),
-            onClick = { onNavigate(OperadorDestination.IDEIAS) }
-        )
-
-        OperadorBottomItem(
-            icon = "📋",
-            label = "Diretrizes",
-            selected = currentScreen == OperadorDestination.DIRETRIZES,
-            selectedColor = selectedColor,
-            inactiveColor = inactiveColor,
-            modifier = Modifier.weight(1f),
-            onClick = { onNavigate(OperadorDestination.DIRETRIZES) }
-        )
-
-        OperadorBottomItem(
-            icon = "👤",
-            label = "Perfil",
-            selected = currentScreen == OperadorDestination.PERFIL,
-            selectedColor = selectedColor,
-            inactiveColor = inactiveColor,
-            modifier = Modifier.weight(1f),
-            onClick = { onNavigate(OperadorDestination.PERFIL) }
-        )
+    val selected = when (currentScreen) {
+        OperadorDestination.HOME -> "home"
+        OperadorDestination.IDEIAS, OperadorDestination.IDEA_REGISTER -> "ideias"
+        OperadorDestination.DIRETRIZES -> "diretrizes"
+        OperadorDestination.PERFIL -> "perfil"
     }
-}
 
-@Composable
-fun OperadorBottomItem(
-    icon: String,
-    label: String,
-    selected: Boolean,
-    selectedColor: Color,
-    inactiveColor: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val currentColor = if (selected) selectedColor else inactiveColor
-
-    Box(
+    InovaBottomBar(
+        items = operadorBottomItems(onNavigate),
+        selectedKey = selected,
         modifier = modifier
-            .fillMaxHeight()
-            .clickable { onClick() }
-    ) {
-        if (selected) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .background(selectedColor)
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 7.dp, bottom = 5.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = icon,
-                fontSize = 17.sp
-            )
-
-            Spacer(modifier = Modifier.height(1.dp))
-
-            Text(
-                text = label,
-                color = currentColor,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
+    )
 }
