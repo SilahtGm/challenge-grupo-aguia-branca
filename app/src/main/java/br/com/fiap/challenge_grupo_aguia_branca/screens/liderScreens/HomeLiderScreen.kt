@@ -56,7 +56,7 @@ fun HomeLiderScreen(
         viewModel.carregarDashboard()
     }
 
-    val roiTotal = dashboard?.retornoFinanceiroTotal?.let {
+    val roiTotal = dashboard?.retornoFinanceiro?.let {
         (it / 1000).roundToInt()
     } ?: 0
     val projetosAtivos = dashboard?.totalProjetos ?: 0

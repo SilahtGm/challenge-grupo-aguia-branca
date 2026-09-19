@@ -17,11 +17,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -30,8 +34,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.IdeiaResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.STATUS_IDEIA_APROVADA
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.STATUS_IDEIA_PENDENTE
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.STATUS_IDEIA_REJEITADA
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.statusIdeiaLabel
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.GestorBottomBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.GestorDestination
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
@@ -51,7 +60,8 @@ fun CuradoriaIdeiasScreen(
     onNavigate: (GestorDestination) -> Unit = {},
     onVoltarClick: () -> Unit = {}
 ) {
-    val ideias by viewModel.registros.collectAsState()
+    val ideias by viewModel.ideias.collectAsState()
+    var ideiaParaReprovar by remember { mutableStateOf<IdeiaResponse?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.listarIdeias()
@@ -91,15 +101,8 @@ fun CuradoriaIdeiasScreen(
                         items(ideias) { ideia ->
                             CuradoriaIdeiaCard(
                                 ideia = ideia,
-                                onAprovar = {
-                                    ideia.id?.let { id -> viewModel.aprovarIdeia(id) }
-                                },
-                                onReprovar = {
-                                    ideia.id?.let { id -> viewModel.reprovarIdeia(id) }
-                                },
-                                onAnalisar = {
-                                    ideia.id?.let { id -> viewModel.colocarIdeiaEmAnalise(id) }
-                                }
+                                onAprovar = { viewModel.aprovarIdeia(ideia.id) },
+                                onReprovar = { ideiaParaReprovar = ideia }
                             )
                         }
                     }
@@ -112,20 +115,78 @@ fun CuradoriaIdeiasScreen(
             onNavigate = onNavigate,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        ideiaParaReprovar?.let { ideia ->
+            ReprovarIdeiaDialog(
+                onConfirmar = { motivo ->
+                    viewModel.rejeitarIdeia(ideia.id, motivo)
+                    ideiaParaReprovar = null
+                },
+                onDismiss = { ideiaParaReprovar = null }
+            )
+        }
+    }
+}
+
+@Composable
+fun ReprovarIdeiaDialog(
+    onConfirmar: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var motivo by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Motivo da reprovação",
+                    color = InovaAzulEscuro,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = motivo,
+                    onValueChange = { motivo = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Explique por que a ideia foi reprovada") }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    CuradoriaButton(
+                        label = "Cancelar",
+                        backgroundColor = InovaCinzaTexto,
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    CuradoriaButton(
+                        label = "Confirmar",
+                        backgroundColor = InovaAzulEscuro,
+                        onClick = { if (motivo.isNotBlank()) onConfirmar(motivo.trim()) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
 fun CuradoriaIdeiaCard(
-    ideia: RegistroResponse,
+    ideia: IdeiaResponse,
     onAprovar: () -> Unit,
-    onReprovar: () -> Unit,
-    onAnalisar: () -> Unit
+    onReprovar: () -> Unit
 ) {
     val statusColor = when (ideia.status) {
-        "APROVADA" -> InovaVerde
-        "REPROVADA" -> InovaAzulClaro
-        "EM_ANALISE" -> InovaAzulEscuro
+        STATUS_IDEIA_APROVADA -> InovaVerde
+        STATUS_IDEIA_REJEITADA -> InovaAzulClaro
         else -> InovaCinzaTexto
     }
 
@@ -148,7 +209,7 @@ fun CuradoriaIdeiaCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = ideia.titulo ?: "—",
+                    text = ideia.titulo,
                     color = InovaAzulEscuro,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
@@ -164,7 +225,7 @@ fun CuradoriaIdeiaCard(
                         .padding(horizontal = 10.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = ideia.status?.replace("_", " ") ?: "—",
+                        text = statusIdeiaLabel(ideia.status),
                         color = InovaBranco,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold
@@ -175,41 +236,34 @@ fun CuradoriaIdeiaCard(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = ideia.descricao ?: "Sem descrição",
+                text = ideia.descricao,
                 color = InovaCinzaTexto,
                 fontSize = 11.sp
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (ideia.status == STATUS_IDEIA_PENDENTE) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                CuradoriaButton(
-                    label = "Ver",
-                    backgroundColor = InovaAzulClaro,
-                    onClick = onAnalisar,
-                    modifier = Modifier.weight(1f)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    CuradoriaButton(
+                        label = "Aprovar",
+                        backgroundColor = InovaVerde,
+                        onClick = onAprovar,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                CuradoriaButton(
-                    label = "Aprovar",
-                    backgroundColor = InovaVerde,
-                    onClick = onAprovar,
-                    modifier = Modifier.weight(1f)
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                CuradoriaButton(
-                    label = "Reprovar",
-                    backgroundColor = InovaAzulEscuro,
-                    onClick = onReprovar,
-                    modifier = Modifier.weight(1f)
-                )
+                    CuradoriaButton(
+                        label = "Reprovar",
+                        backgroundColor = InovaAzulEscuro,
+                        onClick = onReprovar,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }

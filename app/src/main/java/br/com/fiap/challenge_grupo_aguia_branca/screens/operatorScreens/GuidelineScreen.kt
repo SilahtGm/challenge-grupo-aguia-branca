@@ -30,7 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.EstrategiaResponse
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorBottomBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorDestination
@@ -48,10 +48,10 @@ fun GuidelineScreen(
     onNavigate: (OperadorDestination) -> Unit = {},
     onVoltarClick: () -> Unit = {}
 ) {
-    val orientacoes by viewModel.registros.collectAsState()
+    val orientacoes by viewModel.estrategias.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.listarOrientacoes()
+        viewModel.listarEstrategias()
     }
 
     Box(
@@ -102,7 +102,7 @@ fun GuidelineScreen(
 }
 
 @Composable
-fun DiretrizCard(orientacao: RegistroResponse) {
+fun DiretrizCard(orientacao: EstrategiaResponse) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,7 +139,7 @@ fun DiretrizCard(orientacao: RegistroResponse) {
                     .padding(horizontal = 14.dp, vertical = 14.dp)
             ) {
                 Text(
-                    text = orientacao.nome ?: orientacao.titulo ?: "—",
+                    text = orientacao.titulo,
                     color = InovaAzulEscuro,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold
@@ -148,7 +148,7 @@ fun DiretrizCard(orientacao: RegistroResponse) {
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = orientacao.descricao ?: "Sem descrição",
+                    text = orientacao.descricao,
                     color = InovaCinzaTexto,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium

@@ -30,7 +30,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.IdeiaResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.STATUS_IDEIA_APROVADA
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.STATUS_IDEIA_REJEITADA
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.statusIdeiaLabel
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorBottomBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.OperadorDestination
@@ -51,15 +54,15 @@ fun HomeOperadorScreen(
     onNavigate: (OperadorDestination) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
-    val ideias by viewModel.registros.collectAsState()
+    val ideias by viewModel.ideias.collectAsState()
     val usuario by viewModel.usuarioLogado.collectAsState()
 
-    LaunchedEffect(usuario?.id) {
+    LaunchedEffect(usuario?.usuarioId) {
         viewModel.listarMinhasIdeias()
     }
 
     val ideiasEnviadas = ideias.size
-    val ideiasAprovadas = ideias.count { it.status == "APROVADA" }
+    val ideiasAprovadas = ideias.count { it.status == STATUS_IDEIA_APROVADA }
 
     Box(
         modifier = Modifier
@@ -280,13 +283,11 @@ fun RegisterIdeaButton(
 }
 
 @Composable
-fun RecentIdeaCard(ideia: RegistroResponse) {
+fun RecentIdeaCard(ideia: IdeiaResponse) {
     val (statusLabel, statusColor) = when (ideia.status) {
-        "APROVADA" -> "✓ Aprovada" to InovaVerde
-        "REPROVADA" -> "✗ Reprovada" to InovaAzulClaro
-        "EM_ANALISE" -> "⏳ Em análise" to InovaAzulEscuro
-        "VIROU_PROJETO" -> "🚀 Virou projeto" to InovaAzulClaro
-        else -> "• Pendente" to InovaCinzaTexto
+        STATUS_IDEIA_APROVADA -> "✓ Aprovada" to InovaVerde
+        STATUS_IDEIA_REJEITADA -> "✗ Reprovada" to InovaAzulClaro
+        else -> "• ${statusIdeiaLabel(ideia.status)}" to InovaCinzaTexto
     }
 
     Card(
@@ -309,7 +310,7 @@ fun RecentIdeaCard(ideia: RegistroResponse) {
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Text(
-                text = ideia.titulo ?: ideia.nome ?: "—",
+                text = ideia.titulo,
                 color = InovaAzulEscuro,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.ExtraBold
@@ -318,7 +319,7 @@ fun RecentIdeaCard(ideia: RegistroResponse) {
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = ideia.descricao ?: "Sem descrição",
+                text = ideia.descricao,
                 color = InovaCinzaTexto,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium

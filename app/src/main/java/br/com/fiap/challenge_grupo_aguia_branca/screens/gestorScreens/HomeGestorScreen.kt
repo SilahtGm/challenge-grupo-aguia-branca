@@ -20,10 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -33,7 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import br.com.fiap.challenge_grupo_aguia_branca.data.remote.RetrofitClient
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.STATUS_IDEIA_PENDENTE
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.GestorBottomBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.GestorDestination
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
@@ -46,7 +42,6 @@ import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaTexto
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaLilas
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaPreto
 import br.com.fiap.challenge_grupo_aguia_branca.viewmodel.ApiViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun HomeGestorScreen(
@@ -54,26 +49,17 @@ fun HomeGestorScreen(
     onNavigate: (GestorDestination) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
-    var pendentes by remember { mutableStateOf(0) }
-    var totalProjetos by remember { mutableStateOf(0) }
-    val scope = rememberCoroutineScope()
+    val ideias by viewModel.ideias.collectAsState()
+    val projetos by viewModel.projetos.collectAsState()
     val erro by viewModel.erro.collectAsState()
 
     LaunchedEffect(Unit) {
-        scope.launch {
-            try {
-                val api = RetrofitClient.apiService
-                val ideias = api.listarRegistrosPorTipo("IDEIA")
-                pendentes = ideias.count {
-                    it.status == "PENDENTE" || it.status == "EM_ANALISE"
-                }
-                val projetos = api.listarRegistrosPorTipo("PROJETO")
-                totalProjetos = projetos.size
-            } catch (_: Exception) {
-                // O ApiViewModel já reportará erros nas listagens individuais
-            }
-        }
+        viewModel.listarIdeias()
+        viewModel.listarProjetos()
     }
+
+    val pendentes = ideias.count { it.status == STATUS_IDEIA_PENDENTE }
+    val totalProjetos = projetos.size
 
     Box(
         modifier = Modifier

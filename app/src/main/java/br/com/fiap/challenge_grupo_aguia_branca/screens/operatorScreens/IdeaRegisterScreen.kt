@@ -22,6 +22,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +39,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.CriarIdeiaRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.EstrategiaResponse
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.ChallengegrupoaguiabrancaTheme
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaAzulClaro
@@ -51,7 +53,6 @@ import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaPlaceholder
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaTexto
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaPreto
 import br.com.fiap.challenge_grupo_aguia_branca.viewmodel.ApiViewModel
-import java.time.Instant
 
 @Composable
 fun IdeaRegisterScreen(
@@ -62,11 +63,16 @@ fun IdeaRegisterScreen(
 ) {
     var titulo by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
-    var categoriaSelecionada by remember { mutableStateOf("Selecione uma categoria") }
+    var estrategiaSelecionada by remember { mutableStateOf<EstrategiaResponse?>(null) }
     var menuAberto by remember { mutableStateOf(false) }
 
     val usuario by viewModel.usuarioLogado.collectAsState()
+    val estrategias by viewModel.estrategias.collectAsState()
     val erro by viewModel.erro.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.listarEstrategias()
+    }
 
     Box(
         modifier = Modifier
@@ -145,7 +151,7 @@ fun IdeaRegisterScreen(
                         .height(110.dp)
                 ) {
                     Text(
-                        text = "Categoria *",
+                        text = "Estratégia *",
                         color = InovaCinzaTexto,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -168,7 +174,7 @@ fun IdeaRegisterScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = categoriaSelecionada,
+                                text = estrategiaSelecionada?.titulo ?: "Selecione uma estratégia",
                                 color = InovaPreto,
                                 fontSize = 12.sp
                             )
@@ -187,23 +193,16 @@ fun IdeaRegisterScreen(
                             expanded = menuAberto,
                             onDismissRequest = { menuAberto = false }
                         ) {
-                            listOf(
-                                "Redução de Custos",
-                                "Melhoria de Processo",
-                                "Sustentabilidade",
-                                "Tecnologia",
-                                "Segurança",
-                                "Produtividade"
-                            ).forEach { categoria ->
+                            estrategias.forEach { estrategia ->
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            text = categoria,
+                                            text = estrategia.titulo,
                                             fontSize = 13.sp
                                         )
                                     },
                                     onClick = {
-                                        categoriaSelecionada = categoria
+                                        estrategiaSelecionada = estrategia
                                         menuAberto = false
                                     }
                                 )
@@ -247,36 +246,20 @@ fun IdeaRegisterScreen(
                             .weight(1f)
                             .height(44.dp),
                         onClick = {
-                            val usuarioAtual = usuario
-                            if (usuarioAtual == null ||
+                            val estrategiaAtual = estrategiaSelecionada
+                            if (usuario == null ||
                                 titulo.isBlank() ||
                                 descricao.isBlank() ||
-                                categoriaSelecionada == "Selecione uma categoria"
+                                estrategiaAtual == null
                             ) {
                                 return@ActionButton
                             }
 
-                            viewModel.cadastrarRegistro(
-                                RegistroRequest(
-                                    dataCriado = Instant.now().toString(),
-                                    tipo = "IDEIA",
+                            viewModel.cadastrarIdeia(
+                                CriarIdeiaRequest(
                                     titulo = titulo.trim(),
                                     descricao = descricao.trim(),
-                                    categoria = categoriaSelecionada,
-                                    status = "PENDENTE",
-                                    prioridade = "MEDIA",
-                                    operadorId = usuarioAtual.id,
-                                    orientacaoId = "",
-                                    nome = "",
-                                    etapa = "",
-                                    investimento = 0.0,
-                                    retornoFinanceiro = 0.0,
-                                    reducaoCustos = 0.0,
-                                    ganhoProdutividade = 0.0,
-                                    prazo = "",
-                                    ideiaId = "",
-                                    gestorId = "",
-                                    ativo = true
+                                    estrategiaId = estrategiaAtual.id
                                 ),
                                 aoConcluir = onEnviarClick
                             )

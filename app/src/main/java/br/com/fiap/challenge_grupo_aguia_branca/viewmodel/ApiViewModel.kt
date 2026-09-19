@@ -2,28 +2,45 @@ package br.com.fiap.challenge_grupo_aguia_branca.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.DashboardResumo
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroRequest
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroResponse
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.UsuarioResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.AtualizarAndamentoProjetoRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.ConcluirProjetoRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.CriarIdeiaRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.CriarProjetoRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.DashboardResumoResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.EstrategiaRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.EstrategiaResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.IdeiaResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.IniciarProjetoRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.LoginRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.ProjetoResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.RejeitarIdeiaRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.UsuarioSessao
 import br.com.fiap.challenge_grupo_aguia_branca.data.remote.RetrofitClient
-import br.com.fiap.challenge_grupo_aguia_branca.data.service.DashboardService
+import br.com.fiap.challenge_grupo_aguia_branca.data.remote.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.time.LocalDate
 
 class ApiViewModel : ViewModel() {
 
     private val api = RetrofitClient.apiService
 
-    private val _usuarioLogado = MutableStateFlow<UsuarioResponse?>(null)
-    val usuarioLogado: StateFlow<UsuarioResponse?> = _usuarioLogado
+    private val _usuarioLogado = MutableStateFlow<UsuarioSessao?>(null)
+    val usuarioLogado: StateFlow<UsuarioSessao?> = _usuarioLogado
 
-    private val _registros = MutableStateFlow<List<RegistroResponse>>(emptyList())
-    val registros: StateFlow<List<RegistroResponse>> = _registros
+    private val _estrategias = MutableStateFlow<List<EstrategiaResponse>>(emptyList())
+    val estrategias: StateFlow<List<EstrategiaResponse>> = _estrategias
 
-    private val _dashboard = MutableStateFlow<DashboardResumo?>(null)
-    val dashboard: StateFlow<DashboardResumo?> = _dashboard
+    private val _ideias = MutableStateFlow<List<IdeiaResponse>>(emptyList())
+    val ideias: StateFlow<List<IdeiaResponse>> = _ideias
+
+    private val _projetos = MutableStateFlow<List<ProjetoResponse>>(emptyList())
+    val projetos: StateFlow<List<ProjetoResponse>> = _projetos
+
+    private val _dashboard = MutableStateFlow<DashboardResumoResponse?>(null)
+    val dashboard: StateFlow<DashboardResumoResponse?> = _dashboard
 
     private val _erro = MutableStateFlow<String?>(null)
     val erro: StateFlow<String?> = _erro
@@ -34,265 +51,218 @@ class ApiViewModel : ViewModel() {
     fun login(email: String, senha: String) {
         viewModelScope.launch {
             try {
-                val usuarios = api.login(email, senha)
-                val usuario = usuarios.firstOrNull()
-
-                if (usuario == null) {
-                    _usuarioLogado.value = null
-                    _erro.value = "Email ou senha inválidos, por favor, tente novamente."
-                    return@launch
-                }
-
-                _usuarioLogado.value = usuario
+                val resposta = api.login(LoginRequest(email, senha))
+                SessionManager.token = resposta.token
+                _usuarioLogado.value = UsuarioSessao(
+                    usuarioId = resposta.usuarioId,
+                    nome = resposta.nome,
+                    email = resposta.email,
+                    perfis = resposta.perfis
+                )
                 _erro.value = null
             } catch (e: Exception) {
+                SessionManager.token = null
                 _usuarioLogado.value = null
-                _erro.value = "Erro ao realizar login."
+                _erro.value = if (e is HttpException && e.code() == 401) {
+                    "Email ou senha inválidos, por favor, tente novamente."
+                } else {
+                    "Erro ao realizar login."
+                }
             }
         }
     }
 
-    fun listarRegistrosPorTipo(tipo: String) {
+    fun listarEstrategias() {
         viewModelScope.launch {
             try {
-                _registros.value = api.listarRegistrosPorTipo(tipo)
+                _estrategias.value = api.listarEstrategias()
                 _erro.value = null
             } catch (e: Exception) {
-                _erro.value = "Erro ao carregar registros."
+                _erro.value = mensagemErro(e, "Erro ao carregar diretrizes.")
             }
         }
     }
 
-    fun cadastrarRegistro(registro: RegistroRequest, aoConcluir: () -> Unit = {}) {
+    fun cadastrarEstrategia(request: EstrategiaRequest, aoConcluir: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                api.cadastrarRegistro(registro)
-                _mensagem.value = "Registro criado com sucesso."
+                api.criarEstrategia(request)
+                _mensagem.value = "Diretriz criada com sucesso."
                 _erro.value = null
-                listarRegistrosPorTipo(registro.tipo)
+                listarEstrategias()
                 aoConcluir()
             } catch (e: Exception) {
-                _erro.value = "Erro ao cadastrar registro."
+                _erro.value = mensagemErro(e, "Erro ao cadastrar diretriz.")
             }
         }
     }
 
-    fun atualizarRegistroParcial(id: String, campos: Map<String, Any?>, tipo: String) {
+    fun atualizarEstrategia(id: String, request: EstrategiaRequest, aoConcluir: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                api.atualizarRegistroParcial(id, campos)
+                api.atualizarEstrategia(id, request)
                 _erro.value = null
-                listarRegistrosPorTipo(tipo)
+                listarEstrategias()
+                aoConcluir()
             } catch (e: Exception) {
-                _erro.value = "Erro ao atualizar registro."
+                _erro.value = mensagemErro(e, "Erro ao atualizar diretriz.")
             }
         }
     }
 
-    fun deletarRegistro(id: String, tipo: String) {
+    fun deletarEstrategia(id: String) {
         viewModelScope.launch {
             try {
-                api.deletarRegistro(id)
-                _mensagem.value = "Registro removido."
-                _erro.value = null
-                listarRegistrosPorTipo(tipo)
+                api.deletarEstrategia(id)
+                listarEstrategias()
             } catch (e: Exception) {
-                _erro.value = "Erro ao deletar registro."
+                _erro.value = mensagemErro(e, "Erro ao remover diretriz.")
             }
         }
     }
 
     fun listarIdeias() {
-        listarRegistrosPorTipo("IDEIA")
-    }
-
-    fun listarProjetos() {
-        listarRegistrosPorTipo("PROJETO")
-    }
-
-    fun listarOrientacoes() {
-        listarRegistrosPorTipo("ORIENTACAO")
+        viewModelScope.launch {
+            try {
+                _ideias.value = api.listarIdeias()
+                _erro.value = null
+            } catch (e: Exception) {
+                _erro.value = mensagemErro(e, "Erro ao carregar ideias.")
+            }
+        }
     }
 
     fun listarMinhasIdeias() {
         viewModelScope.launch {
             try {
                 val usuario = _usuarioLogado.value
-
                 if (usuario == null) {
                     _erro.value = "Usuário não autenticado."
                     return@launch
                 }
-
-                val ideias = api.listarRegistrosPorTipo("IDEIA")
-                _registros.value = ideias.filter { it.operadorId == usuario.id }
+                _ideias.value = api.listarIdeias().filter { it.operadorId == usuario.usuarioId }
                 _erro.value = null
             } catch (e: Exception) {
-                _erro.value = "Erro ao carregar suas ideias."
+                _erro.value = mensagemErro(e, "Erro ao carregar suas ideias.")
             }
         }
     }
 
-    fun listarIdeiasPorOrientacao(orientacaoId: String) {
+    fun cadastrarIdeia(request: CriarIdeiaRequest, aoConcluir: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                val ideias = api.listarRegistrosPorTipo("IDEIA")
-                _registros.value = ideias.filter { it.orientacaoId == orientacaoId }
+                api.criarIdeia(request)
+                _mensagem.value = "Ideia registrada com sucesso."
                 _erro.value = null
+                listarMinhasIdeias()
+                aoConcluir()
             } catch (e: Exception) {
-                _erro.value = "Erro ao carregar ideias por orientação."
+                _erro.value = mensagemErro(e, "Erro ao cadastrar ideia.")
             }
         }
     }
 
-    fun listarProjetosPorOrientacao(orientacaoId: String) {
+    fun aprovarIdeia(id: String) {
         viewModelScope.launch {
             try {
-                val projetos = api.listarRegistrosPorTipo("PROJETO")
-                _registros.value = projetos.filter { it.orientacaoId == orientacaoId }
-                _erro.value = null
+                api.aprovarIdeia(id)
+                listarIdeias()
             } catch (e: Exception) {
-                _erro.value = "Erro ao carregar projetos por orientação."
+                _erro.value = mensagemErro(e, "Erro ao aprovar ideia.")
             }
         }
     }
 
-    fun colocarIdeiaEmAnalise(id: String) {
-        atualizarRegistroParcial(
-            id = id,
-            campos = mapOf(
-                "status" to "EM_ANALISE"
-            ),
-            tipo = "IDEIA"
-        )
+    fun rejeitarIdeia(id: String, motivo: String) {
+        viewModelScope.launch {
+            try {
+                api.rejeitarIdeia(id, RejeitarIdeiaRequest(motivo))
+                listarIdeias()
+            } catch (e: Exception) {
+                _erro.value = mensagemErro(e, "Erro ao reprovar ideia.")
+            }
+        }
     }
 
-    fun aprovarIdeia(id: String, prioridade: String = "ALTA") {
-        atualizarRegistroParcial(
-            id = id,
-            campos = mapOf(
-                "status" to "APROVADA",
-                "prioridade" to prioridade
-            ),
-            tipo = "IDEIA"
-        )
+    fun listarProjetos() {
+        viewModelScope.launch {
+            try {
+                _projetos.value = api.listarProjetos()
+                _erro.value = null
+            } catch (e: Exception) {
+                _erro.value = mensagemErro(e, "Erro ao carregar projetos.")
+            }
+        }
     }
 
-    fun reprovarIdeia(id: String) {
-        atualizarRegistroParcial(
-            id = id,
-            campos = mapOf(
-                "status" to "REPROVADA"
-            ),
-            tipo = "IDEIA"
-        )
+    fun cadastrarProjeto(request: CriarProjetoRequest, aoConcluir: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                api.criarProjeto(request)
+                _mensagem.value = "Projeto criado com sucesso."
+                _erro.value = null
+                listarProjetos()
+                aoConcluir()
+            } catch (e: Exception) {
+                _erro.value = mensagemErro(e, "Erro ao cadastrar projeto.")
+            }
+        }
     }
 
-    fun marcarIdeiaComoProjeto(id: String) {
-        atualizarRegistroParcial(
-            id = id,
-            campos = mapOf(
-                "status" to "VIROU_PROJETO"
-            ),
-            tipo = "IDEIA"
-        )
+    fun iniciarProjeto(id: String) {
+        viewModelScope.launch {
+            try {
+                api.iniciarProjeto(id, IniciarProjetoRequest(dataHoje()))
+                listarProjetos()
+            } catch (e: Exception) {
+                _erro.value = mensagemErro(e, "Erro ao iniciar projeto.")
+            }
+        }
     }
 
-    fun atualizarPrioridadeIdeia(id: String, prioridade: String) {
-        atualizarRegistroParcial(
-            id = id,
-            campos = mapOf(
-                "prioridade" to prioridade
-            ),
-            tipo = "IDEIA"
-        )
+    fun avancarAndamentoProjeto(id: String, etapa: String, percentualConclusao: Int) {
+        viewModelScope.launch {
+            try {
+                api.atualizarAndamentoProjeto(
+                    id,
+                    AtualizarAndamentoProjetoRequest(etapa, percentualConclusao)
+                )
+                listarProjetos()
+            } catch (e: Exception) {
+                _erro.value = mensagemErro(e, "Erro ao atualizar andamento do projeto.")
+            }
+        }
     }
 
-    fun atualizarStatusProjeto(id: String, status: String, etapa: String) {
-        atualizarRegistroParcial(
-            id = id,
-            campos = mapOf(
-                "status" to status,
-                "etapa" to etapa
-            ),
-            tipo = "PROJETO"
-        )
-    }
-
-    fun atualizarResultadosProjeto(
-        id: String,
-        retornoFinanceiro: Double,
-        reducaoCustos: Double,
-        ganhoProdutividade: Double
-    ) {
-        atualizarRegistroParcial(
-            id = id,
-            campos = mapOf(
-                "retornoFinanceiro" to retornoFinanceiro,
-                "reducaoCustos" to reducaoCustos,
-                "ganhoProdutividade" to ganhoProdutividade
-            ),
-            tipo = "PROJETO"
-        )
-    }
-
-    fun atualizarMetaProjeto(
-        id: String,
-        investimento: Double,
-        retornoFinanceiro: Double,
-        reducaoCustos: Double,
-        ganhoProdutividade: Double,
-        prazo: String
-    ) {
-        atualizarRegistroParcial(
-            id = id,
-            campos = mapOf(
-                "investimento" to investimento,
-                "retornoFinanceiro" to retornoFinanceiro,
-                "reducaoCustos" to reducaoCustos,
-                "ganhoProdutividade" to ganhoProdutividade,
-                "prazo" to prazo
-            ),
-            tipo = "PROJETO"
-        )
+    fun concluirProjeto(id: String) {
+        viewModelScope.launch {
+            try {
+                api.concluirProjeto(id, ConcluirProjetoRequest(dataHoje()))
+                listarProjetos()
+            } catch (e: Exception) {
+                _erro.value = mensagemErro(e, "Erro ao concluir projeto.")
+            }
+        }
     }
 
     fun carregarDashboard() {
         viewModelScope.launch {
             try {
-                val projetos = api.listarRegistrosPorTipo("PROJETO")
-                _dashboard.value = DashboardService.calcularResumo(projetos)
+                _dashboard.value = api.obterResumoDashboard()
                 _erro.value = null
             } catch (e: Exception) {
                 _dashboard.value = null
-                _erro.value = "Erro ao carregar dashboard."
+                _erro.value = mensagemErro(e, "Erro ao carregar dashboard.")
             }
         }
     }
 
-    fun ativarRegistro(id: String, tipo: String) {
-        atualizarRegistroParcial(
-            id = id,
-            campos = mapOf(
-                "ativo" to true
-            ),
-            tipo = tipo
-        )
-    }
-
-    fun desativarRegistro(id: String, tipo: String) {
-        atualizarRegistroParcial(
-            id = id,
-            campos = mapOf(
-                "ativo" to false
-            ),
-            tipo = tipo
-        )
-    }
-
     fun logout() {
+        SessionManager.token = null
         _usuarioLogado.value = null
-        _registros.value = emptyList()
+        _estrategias.value = emptyList()
+        _ideias.value = emptyList()
+        _projetos.value = emptyList()
         _dashboard.value = null
         _erro.value = null
         _mensagem.value = null
@@ -305,4 +275,19 @@ class ApiViewModel : ViewModel() {
     fun limparMensagem() {
         _mensagem.value = null
     }
+
+    private fun mensagemErro(e: Exception, generica: String): String {
+        return if (e is HttpException) {
+            when (e.code()) {
+                401 -> "Sessão expirada. Faça login novamente."
+                403 -> "Você não tem permissão para essa ação."
+                404 -> "Registro não encontrado."
+                else -> generica
+            }
+        } else {
+            generica
+        }
+    }
+
+    private fun dataHoje(): String = LocalDate.now().toString()
 }

@@ -73,7 +73,7 @@ fun PerfilScreen(
                 PerfilCardInfo(
                     nome = usuario?.nome ?: "—",
                     email = usuario?.email ?: "—",
-                    perfil = usuario?.perfil?.capitalizar() ?: "—"
+                    perfil = usuario?.perfilPrincipal?.capitalizar() ?: "—"
                 )
             }
         }

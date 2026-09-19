@@ -31,7 +31,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.EstrategiaResponse
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.LiderBottomBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.LiderDestination
@@ -52,10 +52,10 @@ fun DiretrizesLiderScreen(
     onNovaDiretrizClick: () -> Unit = {},
     onEditarDiretriz: (String) -> Unit = {}
 ) {
-    val diretrizes by viewModel.registros.collectAsState()
+    val diretrizes by viewModel.estrategias.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.listarOrientacoes()
+        viewModel.listarEstrategias()
     }
 
     Box(
@@ -96,10 +96,8 @@ fun DiretrizesLiderScreen(
                         items(diretrizes) { diretriz ->
                             DiretrizLiderCard(
                                 diretriz = diretriz,
-                                onEditar = { diretriz.id?.let(onEditarDiretriz) },
-                                onExcluir = {
-                                    diretriz.id?.let { viewModel.deletarRegistro(it, "ORIENTACAO") }
-                                }
+                                onEditar = { onEditarDiretriz(diretriz.id) },
+                                onExcluir = { viewModel.deletarEstrategia(diretriz.id) }
                             )
                         }
                     }
@@ -149,7 +147,7 @@ fun NovaDiretrizBotao(onClick: () -> Unit) {
 
 @Composable
 fun DiretrizLiderCard(
-    diretriz: RegistroResponse,
+    diretriz: EstrategiaResponse,
     onEditar: () -> Unit,
     onExcluir: () -> Unit
 ) {
@@ -186,7 +184,7 @@ fun DiretrizLiderCard(
                     .padding(horizontal = 14.dp, vertical = 14.dp)
             ) {
                 Text(
-                    text = diretriz.nome ?: diretriz.titulo ?: "—",
+                    text = diretriz.titulo,
                     color = InovaAzulEscuro,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold
@@ -195,7 +193,7 @@ fun DiretrizLiderCard(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = diretriz.descricao ?: "Sem descrição",
+                    text = diretriz.descricao,
                     color = InovaCinzaTexto,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium

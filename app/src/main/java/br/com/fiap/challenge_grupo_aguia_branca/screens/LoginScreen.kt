@@ -62,23 +62,23 @@ private data class AcessoDemo(
 private val acessosDemo = listOf(
     AcessoDemo(
         papel = "Operador",
-        email = "operador@teste.com",
-        senha = "123456",
+        email = "operador@aguiabranca.com",
+        senha = "Operador123",
         perfil = "OPERADOR",
         icone = "👨‍💼"
     ),
     AcessoDemo(
         papel = "Gestor",
-        email = "gestor@teste.com",
-        senha = "123456",
+        email = "gestor@aguiabranca.com",
+        senha = "Gestor123",
         perfil = "GESTOR",
         icone = "📊"
     ),
     AcessoDemo(
         papel = "Liderança",
-        email = "lider@teste.com",
-        senha = "123456",
-        perfil = "LIDERANCA",
+        email = "lider@aguiabranca.com",
+        senha = "Lider123",
+        perfil = "LIDER",
         icone = "🎯"
     )
 )
@@ -97,7 +97,7 @@ fun LoginScreen(
 
     LaunchedEffect(usuarioLogado) {
         usuarioLogado?.let {
-            onLoginSucesso(it.perfil.uppercase())
+            onLoginSucesso(it.perfilPrincipal.uppercase())
         }
     }
 

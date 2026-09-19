@@ -30,7 +30,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.ProjetoResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.STATUS_PROJETO_EM_ANDAMENTO
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.STATUS_PROJETO_PLANEJADO
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.statusProjetoLabel
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.GestorBottomBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.GestorDestination
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
@@ -52,7 +55,7 @@ fun GestaoProjetosScreen(
     onNavigate: (GestorDestination) -> Unit = {},
     onVoltarClick: () -> Unit = {}
 ) {
-    val projetos by viewModel.registros.collectAsState()
+    val projetos by viewModel.projetos.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.listarProjetos()
@@ -98,24 +101,15 @@ fun GestaoProjetosScreen(
                         items(projetos) { projeto ->
                             ProjetoCard(
                                 projeto = projeto,
-                                onAtualizarAndamento = {
-                                    projeto.id?.let { id ->
-                                        viewModel.atualizarStatusProjeto(
-                                            id = id,
-                                            status = "EM_ANDAMENTO",
-                                            etapa = "Execução"
-                                        )
-                                    }
+                                onIniciar = { viewModel.iniciarProjeto(projeto.id) },
+                                onAvancar = {
+                                    viewModel.avancarAndamentoProjeto(
+                                        id = projeto.id,
+                                        etapa = "Execução",
+                                        percentualConclusao = minOf(projeto.percentualConclusao + 20, 99)
+                                    )
                                 },
-                                onConcluir = {
-                                    projeto.id?.let { id ->
-                                        viewModel.atualizarStatusProjeto(
-                                            id = id,
-                                            status = "CONCLUIDO",
-                                            etapa = "Concluído"
-                                        )
-                                    }
-                                }
+                                onConcluir = { viewModel.concluirProjeto(projeto.id) }
                             )
                         }
                     }
@@ -165,12 +159,12 @@ fun NovoProjetoBotao(onClick: () -> Unit) {
 
 @Composable
 fun ProjetoCard(
-    projeto: RegistroResponse,
-    onAtualizarAndamento: () -> Unit,
+    projeto: ProjetoResponse,
+    onIniciar: () -> Unit,
+    onAvancar: () -> Unit,
     onConcluir: () -> Unit
 ) {
-    val progresso = calcularProgresso(projeto.status, projeto.etapa)
-    val concluido = projeto.status == "CONCLUIDO"
+    val progresso = projeto.percentualConclusao
 
     Card(
         modifier = Modifier
@@ -190,7 +184,7 @@ fun ProjetoCard(
                 .padding(horizontal = 14.dp, vertical = 14.dp)
         ) {
             Text(
-                text = "Projeto: ${projeto.nome ?: projeto.titulo ?: "—"}",
+                text = "Projeto: ${projeto.titulo}",
                 color = InovaAzulEscuro,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.ExtraBold
@@ -224,13 +218,13 @@ fun ProjetoCard(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "Etapa: ${projeto.etapa ?: "—"}",
+                text = "Etapa: ${projeto.etapa}",
                 color = InovaCinzaTexto,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
             )
 
-            projeto.investimento?.takeIf { it > 0 }?.let {
+            projeto.investimentoPrevisto.takeIf { it > 0 }?.let {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Investimento: R$ ${it.roundToInt()}",
@@ -242,57 +236,74 @@ fun ProjetoCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(36.dp)
-                        .background(
-                            color = if (concluido) InovaCinza else InovaAzulEscuro,
-                            shape = RoundedCornerShape(8.dp)
+                if (projeto.status == STATUS_PROJETO_PLANEJADO) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .background(color = InovaAzulEscuro, shape = RoundedCornerShape(8.dp))
+                            .clickable { onIniciar() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Iniciar",
+                            color = InovaBranco,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                        .clickable(enabled = !concluido) { onAtualizarAndamento() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Em Andamento",
-                        color = if (concluido) InovaCinzaTexto else InovaBranco,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(36.dp)
-                        .background(
-                            color = if (concluido) InovaCinza else InovaVerde,
-                            shape = RoundedCornerShape(8.dp)
+                    }
+                } else if (projeto.status == STATUS_PROJETO_EM_ANDAMENTO) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .background(color = InovaAzulEscuro, shape = RoundedCornerShape(8.dp))
+                            .clickable { onAvancar() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Avançar",
+                            color = InovaBranco,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                        .clickable(enabled = !concluido) { onConcluir() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (concluido) "Concluído" else "Concluir",
-                        color = if (concluido) InovaCinzaTexto else InovaBranco,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .background(color = InovaVerde, shape = RoundedCornerShape(8.dp))
+                            .clickable { onConcluir() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Concluir",
+                            color = InovaBranco,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .background(color = InovaCinza, shape = RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = statusProjetoLabel(projeto.status),
+                            color = InovaCinzaTexto,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-private fun calcularProgresso(status: String?, etapa: String?): Int {
-    return when {
-        status == "CONCLUIDO" -> 100
-        status == "EM_ANDAMENTO" && (etapa?.contains("Execu", ignoreCase = true) == true) -> 65
-        status == "EM_ANDAMENTO" -> 50
-        status == "PLANEJAMENTO" -> 20
-        else -> 10
     }
 }
 

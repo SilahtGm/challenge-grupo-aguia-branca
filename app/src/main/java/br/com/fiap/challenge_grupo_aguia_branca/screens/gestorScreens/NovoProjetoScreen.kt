@@ -17,8 +17,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,11 +32,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.CriarProjetoRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.EstrategiaResponse
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.ChallengegrupoaguiabrancaTheme
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaAzulClaro
@@ -46,7 +52,6 @@ import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaPlaceholder
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaTexto
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaPreto
 import br.com.fiap.challenge_grupo_aguia_branca.viewmodel.ApiViewModel
-import java.time.Instant
 
 @Composable
 fun NovoProjetoScreen(
@@ -55,11 +60,20 @@ fun NovoProjetoScreen(
     onCancelarClick: () -> Unit = {},
     onCriarClick: () -> Unit = {}
 ) {
-    var nomeProjeto by remember { mutableStateOf("") }
-    var responsavel by remember { mutableStateOf("") }
-    var dataTermino by remember { mutableStateOf("") }
-    val usuario by viewModel.usuarioLogado.collectAsState()
+    var titulo by remember { mutableStateOf("") }
+    var descricao by remember { mutableStateOf("") }
+    var estrategiaSelecionada by remember { mutableStateOf<EstrategiaResponse?>(null) }
+    var menuAberto by remember { mutableStateOf(false) }
+    var inicioPrevisto by remember { mutableStateOf("") }
+    var fimPrevisto by remember { mutableStateOf("") }
+    var investimentoPrevisto by remember { mutableStateOf("") }
+
+    val estrategias by viewModel.estrategias.collectAsState()
     val erro by viewModel.erro.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.listarEstrategias()
+    }
 
     Box(
         modifier = Modifier
@@ -84,47 +98,94 @@ fun NovoProjetoScreen(
                     .padding(top = 18.dp, bottom = 18.dp)
             ) {
                 FormFieldLabel(text = "Nome do Projeto *")
-
                 Spacer(modifier = Modifier.height(8.dp))
-
                 NovoProjetoInput(
-                    value = nomeProjeto,
-                    onValueChange = { nomeProjeto = it },
+                    value = titulo,
+                    onValueChange = { titulo = it },
                     placeholder = "Ex: Redução de Custos"
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                FormFieldLabel(text = "Responsável *")
-
+                FormFieldLabel(text = "Descrição *")
                 Spacer(modifier = Modifier.height(8.dp))
-
                 NovoProjetoInput(
-                    value = responsavel,
-                    onValueChange = { responsavel = it },
-                    placeholder = "Nome do responsável"
+                    value = descricao,
+                    onValueChange = { descricao = it },
+                    placeholder = "Descreva o projeto"
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                FormFieldLabel(text = "Data de Término *")
-
+                FormFieldLabel(text = "Estratégia *")
                 Spacer(modifier = Modifier.height(8.dp))
+                Box {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .border(width = 1.dp, color = InovaCinzaBorda, shape = RoundedCornerShape(8.dp))
+                            .clickable { menuAberto = true }
+                            .padding(horizontal = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = estrategiaSelecionada?.titulo ?: "Selecione uma estratégia",
+                            color = InovaPreto,
+                            fontSize = 13.sp
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(text = "⌄", color = InovaPreto, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
 
+                    DropdownMenu(expanded = menuAberto, onDismissRequest = { menuAberto = false }) {
+                        estrategias.forEach { estrategia ->
+                            DropdownMenuItem(
+                                text = { Text(text = estrategia.titulo, fontSize = 13.sp) },
+                                onClick = {
+                                    estrategiaSelecionada = estrategia
+                                    menuAberto = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                FormFieldLabel(text = "Início Previsto *")
+                Spacer(modifier = Modifier.height(8.dp))
                 NovoProjetoInput(
-                    value = dataTermino,
-                    onValueChange = { dataTermino = it },
-                    placeholder = "dd/mm/aaaa"
+                    value = inicioPrevisto,
+                    onValueChange = { inicioPrevisto = it },
+                    placeholder = "aaaa-mm-dd"
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                FormFieldLabel(text = "Fim Previsto *")
+                Spacer(modifier = Modifier.height(8.dp))
+                NovoProjetoInput(
+                    value = fimPrevisto,
+                    onValueChange = { fimPrevisto = it },
+                    placeholder = "aaaa-mm-dd"
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                FormFieldLabel(text = "Investimento Previsto (R$) *")
+                Spacer(modifier = Modifier.height(8.dp))
+                NovoProjetoInput(
+                    value = investimentoPrevisto,
+                    onValueChange = { investimentoPrevisto = it },
+                    placeholder = "0.00",
+                    keyboardType = KeyboardType.Decimal
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 erro?.let {
-                    Text(
-                        text = it,
-                        color = InovaAzulClaro,
-                        fontSize = 12.sp
-                    )
+                    Text(text = it, color = InovaAzulClaro, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
@@ -136,9 +197,7 @@ fun NovoProjetoScreen(
                         label = "Cancelar",
                         background = InovaCinza,
                         textColor = InovaAzulEscuro,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(46.dp),
+                        modifier = Modifier.weight(1f).height(46.dp),
                         onClick = onCancelarClick
                     )
 
@@ -148,40 +207,29 @@ fun NovoProjetoScreen(
                         label = "Criar",
                         background = InovaAzulClaro,
                         textColor = InovaBranco,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(46.dp),
+                        modifier = Modifier.weight(1f).height(46.dp),
                         onClick = {
-                            val usuarioAtual = usuario
-                            if (usuarioAtual == null ||
-                                nomeProjeto.isBlank() ||
-                                responsavel.isBlank() ||
-                                dataTermino.isBlank()
+                            val estrategia = estrategiaSelecionada
+                            val investimento = investimentoPrevisto.replace(",", ".").toDoubleOrNull()
+
+                            if (titulo.isBlank() ||
+                                descricao.isBlank() ||
+                                estrategia == null ||
+                                inicioPrevisto.isBlank() ||
+                                fimPrevisto.isBlank() ||
+                                investimento == null
                             ) {
                                 return@BotaoAcao
                             }
 
-                            viewModel.cadastrarRegistro(
-                                RegistroRequest(
-                                    dataCriado = Instant.now().toString(),
-                                    tipo = "PROJETO",
-                                    titulo = "",
-                                    descricao = "Projeto: $nomeProjeto. Responsável: $responsavel.",
-                                    categoria = "",
-                                    status = "PLANEJAMENTO",
-                                    prioridade = "",
-                                    operadorId = "",
-                                    orientacaoId = "",
-                                    nome = nomeProjeto.trim(),
-                                    etapa = "Planejamento",
-                                    investimento = 0.0,
-                                    retornoFinanceiro = 0.0,
-                                    reducaoCustos = 0.0,
-                                    ganhoProdutividade = 0.0,
-                                    prazo = dataTermino.trim(),
-                                    ideiaId = "",
-                                    gestorId = usuarioAtual.id,
-                                    ativo = true
+                            viewModel.cadastrarProjeto(
+                                CriarProjetoRequest(
+                                    titulo = titulo.trim(),
+                                    descricao = descricao.trim(),
+                                    estrategiaId = estrategia.id,
+                                    inicioPrevisto = inicioPrevisto.trim(),
+                                    fimPrevisto = fimPrevisto.trim(),
+                                    investimentoPrevisto = investimento
                                 ),
                                 aoConcluir = onCriarClick
                             )
@@ -207,7 +255,8 @@ fun FormFieldLabel(text: String) {
 fun NovoProjetoInput(
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String
+    placeholder: String,
+    keyboardType: KeyboardType = KeyboardType.Text
 ) {
     Box(
         modifier = Modifier
@@ -235,6 +284,7 @@ fun NovoProjetoInput(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             textStyle = TextStyle(
                 color = InovaPreto,
                 fontSize = 13.sp

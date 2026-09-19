@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.EstrategiaRequest
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.ChallengegrupoaguiabrancaTheme
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaAzulClaro
@@ -49,7 +49,6 @@ import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaPlaceholder
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaCinzaTexto
 import br.com.fiap.challenge_grupo_aguia_branca.ui.theme.InovaPreto
 import br.com.fiap.challenge_grupo_aguia_branca.viewmodel.ApiViewModel
-import java.time.Instant
 
 @Composable
 fun NovaDiretrizScreen(
@@ -59,19 +58,30 @@ fun NovaDiretrizScreen(
     onCancelarClick: () -> Unit = {},
     onSalvarClick: () -> Unit = {}
 ) {
-    val diretrizes by viewModel.registros.collectAsState()
+    val diretrizes by viewModel.estrategias.collectAsState()
     val erro by viewModel.erro.collectAsState()
-    val usuario by viewModel.usuarioLogado.collectAsState()
 
     var titulo by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
+    var categoria by remember { mutableStateOf("") }
+    var campanha by remember { mutableStateOf("") }
+    var inicioVigencia by remember { mutableStateOf("") }
+    var fimVigencia by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        viewModel.listarEstrategias()
+    }
 
     LaunchedEffect(diretrizId, diretrizes) {
         if (diretrizId != null) {
             val atual = diretrizes.firstOrNull { it.id == diretrizId }
             if (atual != null) {
-                titulo = atual.nome ?: atual.titulo ?: ""
-                descricao = atual.descricao ?: ""
+                titulo = atual.titulo
+                descricao = atual.descricao
+                categoria = atual.categoria
+                campanha = atual.campanha
+                inicioVigencia = atual.inicioVigencia
+                fimVigencia = atual.fimVigencia
             }
         }
     }
@@ -119,6 +129,50 @@ fun NovaDiretrizScreen(
                     singleLine = false
                 )
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                LabelDiretriz(text = "Categoria *")
+                Spacer(modifier = Modifier.height(8.dp))
+                CampoTexto(
+                    value = categoria,
+                    onValueChange = { categoria = it },
+                    placeholder = "Ex: Operacional",
+                    height = 46.dp
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                LabelDiretriz(text = "Campanha *")
+                Spacer(modifier = Modifier.height(8.dp))
+                CampoTexto(
+                    value = campanha,
+                    onValueChange = { campanha = it },
+                    placeholder = "Ex: Eficiência 2026",
+                    height = 46.dp
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                LabelDiretriz(text = "Início da Vigência *")
+                Spacer(modifier = Modifier.height(8.dp))
+                CampoTexto(
+                    value = inicioVigencia,
+                    onValueChange = { inicioVigencia = it },
+                    placeholder = "aaaa-mm-dd",
+                    height = 46.dp
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                LabelDiretriz(text = "Fim da Vigência *")
+                Spacer(modifier = Modifier.height(8.dp))
+                CampoTexto(
+                    value = fimVigencia,
+                    onValueChange = { fimVigencia = it },
+                    placeholder = "aaaa-mm-dd",
+                    height = 46.dp
+                )
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 erro?.let {
@@ -154,45 +208,29 @@ fun NovaDiretrizScreen(
                             .weight(1f)
                             .height(46.dp),
                         onClick = {
-                            if (titulo.isBlank() || descricao.isBlank()) {
+                            if (titulo.isBlank() ||
+                                descricao.isBlank() ||
+                                categoria.isBlank() ||
+                                campanha.isBlank() ||
+                                inicioVigencia.isBlank() ||
+                                fimVigencia.isBlank()
+                            ) {
                                 return@BotaoDiretriz
                             }
+
+                            val request = EstrategiaRequest(
+                                titulo = titulo.trim(),
+                                descricao = descricao.trim(),
+                                categoria = categoria.trim(),
+                                campanha = campanha.trim(),
+                                inicioVigencia = inicioVigencia.trim(),
+                                fimVigencia = fimVigencia.trim()
+                            )
+
                             if (diretrizId == null) {
-                                viewModel.cadastrarRegistro(
-                                    RegistroRequest(
-                                        dataCriado = Instant.now().toString(),
-                                        tipo = "ORIENTACAO",
-                                        titulo = titulo.trim(),
-                                        descricao = descricao.trim(),
-                                        categoria = "ESTRATEGICA",
-                                        status = "ATIVA",
-                                        prioridade = "ALTA",
-                                        operadorId = "",
-                                        orientacaoId = "",
-                                        nome = titulo.trim(),
-                                        etapa = "",
-                                        investimento = 0.0,
-                                        retornoFinanceiro = 0.0,
-                                        reducaoCustos = 0.0,
-                                        ganhoProdutividade = 0.0,
-                                        prazo = "",
-                                        ideiaId = "",
-                                        gestorId = usuario?.id ?: "",
-                                        ativo = true
-                                    ),
-                                    aoConcluir = onSalvarClick
-                                )
+                                viewModel.cadastrarEstrategia(request, aoConcluir = onSalvarClick)
                             } else {
-                                viewModel.atualizarRegistroParcial(
-                                    id = diretrizId,
-                                    campos = mapOf(
-                                        "nome" to titulo.trim(),
-                                        "titulo" to titulo.trim(),
-                                        "descricao" to descricao.trim()
-                                    ),
-                                    tipo = "ORIENTACAO"
-                                )
-                                onSalvarClick()
+                                viewModel.atualizarEstrategia(diretrizId, request, aoConcluir = onSalvarClick)
                             }
                         }
                     )

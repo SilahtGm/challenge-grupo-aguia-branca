@@ -29,7 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import br.com.fiap.challenge_grupo_aguia_branca.data.model.RegistroResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.DashboardProjetoResponse
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.InovaTopBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.LiderBottomBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.LiderDestination
@@ -50,10 +50,11 @@ fun PortfolioScreen(
     onNavigate: (LiderDestination) -> Unit = {},
     onVoltarClick: () -> Unit = {}
 ) {
-    val projetos by viewModel.registros.collectAsState()
+    val dashboard by viewModel.dashboard.collectAsState()
+    val projetos = dashboard?.projetos ?: emptyList()
 
     LaunchedEffect(Unit) {
-        viewModel.listarProjetos()
+        viewModel.carregarDashboard()
     }
 
     Box(
@@ -104,9 +105,8 @@ fun PortfolioScreen(
 }
 
 @Composable
-fun PortfolioCard(projeto: RegistroResponse) {
-    val progresso = calcularProgresso(projeto.status, projeto.etapa)
-    val roi = projeto.retornoFinanceiroTotalLocal()
+fun PortfolioCard(projeto: DashboardProjetoResponse) {
+    val roi = projeto.roiPercentual?.roundToInt() ?: 0
 
     Card(
         modifier = Modifier
@@ -126,7 +126,7 @@ fun PortfolioCard(projeto: RegistroResponse) {
                 .padding(horizontal = 14.dp, vertical = 14.dp)
         ) {
             Text(
-                text = projeto.nome ?: projeto.titulo ?: "—",
+                text = projeto.titulo,
                 color = InovaAzulEscuro,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.ExtraBold
@@ -145,7 +145,7 @@ fun PortfolioCard(projeto: RegistroResponse) {
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = "$progresso%",
+                    text = "${projeto.percentualConclusao}%",
                     color = InovaAzulEscuro,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold
@@ -154,7 +154,7 @@ fun PortfolioCard(projeto: RegistroResponse) {
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            ProgressBarLinha(progresso = progresso)
+            ProgressBarLinha(progresso = projeto.percentualConclusao)
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -166,28 +166,13 @@ fun PortfolioCard(projeto: RegistroResponse) {
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "R$ ${roi}K",
+                    text = "$roi%",
                     color = InovaVerde,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
         }
-    }
-}
-
-private fun RegistroResponse.retornoFinanceiroTotalLocal(): Int {
-    val retorno = retornoFinanceiro ?: 0.0
-    return (retorno / 1000).roundToInt()
-}
-
-private fun calcularProgresso(status: String?, etapa: String?): Int {
-    return when {
-        status == "CONCLUIDO" -> 100
-        status == "EM_ANDAMENTO" && (etapa?.contains("Execu", ignoreCase = true) == true) -> 65
-        status == "EM_ANDAMENTO" -> 50
-        status == "PLANEJAMENTO" -> 20
-        else -> 10
     }
 }
 
