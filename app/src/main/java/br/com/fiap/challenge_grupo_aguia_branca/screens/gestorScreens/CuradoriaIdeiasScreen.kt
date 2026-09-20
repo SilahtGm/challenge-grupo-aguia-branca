@@ -37,9 +37,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.IdeiaResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.PontuacaoIaResponse
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.STATUS_IDEIA_APROVADA
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.STATUS_IDEIA_PENDENTE
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.STATUS_IDEIA_REJEITADA
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.prioridadeIaLabel
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.statusIdeiaLabel
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.GestorBottomBar
 import br.com.fiap.challenge_grupo_aguia_branca.navigation.GestorDestination
@@ -61,6 +63,9 @@ fun CuradoriaIdeiasScreen(
     onVoltarClick: () -> Unit = {}
 ) {
     val ideias by viewModel.ideias.collectAsState()
+    val pontuacoesIa by viewModel.pontuacoesIa.collectAsState()
+    val pontuandoIaIds by viewModel.pontuandoIaIds.collectAsState()
+    val erro by viewModel.erro.collectAsState()
     var ideiaParaReprovar by remember { mutableStateOf<IdeiaResponse?>(null) }
 
     LaunchedEffect(Unit) {
@@ -88,6 +93,11 @@ fun CuradoriaIdeiasScreen(
                     .padding(horizontal = 14.dp)
                     .padding(top = 14.dp, bottom = 80.dp)
             ) {
+                erro?.let {
+                    Text(text = it, color = InovaAzulClaro, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
                 if (ideias.isEmpty()) {
                     Text(
                         text = "Sem ideias para análise.",
@@ -101,8 +111,11 @@ fun CuradoriaIdeiasScreen(
                         items(ideias) { ideia ->
                             CuradoriaIdeiaCard(
                                 ideia = ideia,
+                                pontuacaoIa = pontuacoesIa[ideia.id],
+                                pontuandoIa = ideia.id in pontuandoIaIds,
                                 onAprovar = { viewModel.aprovarIdeia(ideia.id) },
-                                onReprovar = { ideiaParaReprovar = ideia }
+                                onReprovar = { ideiaParaReprovar = ideia },
+                                onPontuarIa = { viewModel.pontuarIdeiaComIa(ideia.id) }
                             )
                         }
                     }
@@ -181,8 +194,11 @@ fun ReprovarIdeiaDialog(
 @Composable
 fun CuradoriaIdeiaCard(
     ideia: IdeiaResponse,
+    pontuacaoIa: PontuacaoIaResponse?,
+    pontuandoIa: Boolean,
     onAprovar: () -> Unit,
-    onReprovar: () -> Unit
+    onReprovar: () -> Unit,
+    onPontuarIa: () -> Unit
 ) {
     val statusColor = when (ideia.status) {
         STATUS_IDEIA_APROVADA -> InovaVerde
@@ -243,6 +259,60 @@ fun CuradoriaIdeiaCard(
 
             if (ideia.status == STATUS_IDEIA_PENDENTE) {
                 Spacer(modifier = Modifier.height(12.dp))
+
+                when {
+                    pontuacaoIa != null -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = InovaCinzaFundo,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(10.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "IA: ${pontuacaoIa.pontuacao}/100 · ${prioridadeIaLabel(pontuacaoIa.prioridade)}",
+                                    color = InovaAzulEscuro,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = pontuacaoIa.justificativa,
+                                color = InovaCinzaTexto,
+                                fontSize = 10.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    pontuandoIa -> {
+                        Text(
+                            text = "Consultando IA...",
+                            color = InovaCinzaTexto,
+                            fontSize = 11.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    else -> {
+                        CuradoriaButton(
+                            label = "Pontuar com IA",
+                            backgroundColor = InovaAzulClaro,
+                            onClick = onPontuarIa,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

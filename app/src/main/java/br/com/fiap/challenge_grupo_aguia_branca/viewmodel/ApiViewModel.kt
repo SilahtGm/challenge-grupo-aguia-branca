@@ -9,9 +9,11 @@ import br.com.fiap.challenge_grupo_aguia_branca.data.model.CriarProjetoRequest
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.DashboardResumoResponse
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.EstrategiaRequest
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.EstrategiaResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.IdeiaPontuadaResponse
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.IdeiaResponse
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.IniciarProjetoRequest
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.LoginRequest
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.PontuacaoIaResponse
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.ProjetoResponse
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.RejeitarIdeiaRequest
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.UsuarioSessao
@@ -41,6 +43,12 @@ class ApiViewModel : ViewModel() {
 
     private val _dashboard = MutableStateFlow<DashboardResumoResponse?>(null)
     val dashboard: StateFlow<DashboardResumoResponse?> = _dashboard
+
+    private val _pontuacoesIa = MutableStateFlow<Map<String, PontuacaoIaResponse>>(emptyMap())
+    val pontuacoesIa: StateFlow<Map<String, PontuacaoIaResponse>> = _pontuacoesIa
+
+    private val _pontuandoIaIds = MutableStateFlow<Set<String>>(emptySet())
+    val pontuandoIaIds: StateFlow<Set<String>> = _pontuandoIaIds
 
     private val _erro = MutableStateFlow<String?>(null)
     val erro: StateFlow<String?> = _erro
@@ -173,6 +181,21 @@ class ApiViewModel : ViewModel() {
         }
     }
 
+    fun pontuarIdeiaComIa(id: String) {
+        viewModelScope.launch {
+            _pontuandoIaIds.value = _pontuandoIaIds.value + id
+            try {
+                val pontuacao = api.pontuarIdeiaComIa(id)
+                _pontuacoesIa.value = _pontuacoesIa.value + (id to pontuacao)
+                _erro.value = null
+            } catch (e: Exception) {
+                _erro.value = mensagemErro(e, "Erro ao pontuar ideia com IA. Tente novamente em instantes.")
+            } finally {
+                _pontuandoIaIds.value = _pontuandoIaIds.value - id
+            }
+        }
+    }
+
     fun rejeitarIdeia(id: String, motivo: String) {
         viewModelScope.launch {
             try {
@@ -264,6 +287,8 @@ class ApiViewModel : ViewModel() {
         _ideias.value = emptyList()
         _projetos.value = emptyList()
         _dashboard.value = null
+        _pontuacoesIa.value = emptyMap()
+        _pontuandoIaIds.value = emptySet()
         _erro.value = null
         _mensagem.value = null
     }

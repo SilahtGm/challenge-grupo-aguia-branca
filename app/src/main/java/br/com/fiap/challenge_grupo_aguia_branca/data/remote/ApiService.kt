@@ -8,9 +8,11 @@ import br.com.fiap.challenge_grupo_aguia_branca.data.model.DashboardResumoRespon
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.EstrategiaRequest
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.EstrategiaResponse
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.IdeiaResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.IdeiaPontuadaResponse
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.IniciarProjetoRequest
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.LoginRequest
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.LoginResponse
+import br.com.fiap.challenge_grupo_aguia_branca.data.model.PontuacaoIaResponse
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.ProjetoResponse
 import br.com.fiap.challenge_grupo_aguia_branca.data.model.RejeitarIdeiaRequest
 import retrofit2.http.Body
@@ -55,6 +57,12 @@ interface ApiService {
         @Path("id") id: String,
         @Body request: RejeitarIdeiaRequest
     ): IdeiaResponse
+
+    @GET("api/ideias/{id}/pontuacao-ia")
+    suspend fun pontuarIdeiaComIa(@Path("id") id: String): PontuacaoIaResponse
+
+    @GET("api/ideias/pontuacao-ia/ranking")
+    suspend fun rankearIdeiasComIa(): List<IdeiaPontuadaResponse>
 
     @GET("api/projetos")
     suspend fun listarProjetos(): List<ProjetoResponse>
